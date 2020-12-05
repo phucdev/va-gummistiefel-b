@@ -1,8 +1,10 @@
 import asyncio
+import math
+import time
+
 import aiohttp
 import json
 import requests
-import pandas as pd
 
 from typing import Union, List, Dict
 from gummistiefel import GS_SERVER_ADDRESS
@@ -35,7 +37,7 @@ def get_event(event_id: Union[str, int],
               webserver_address: str = GS_SERVER_ADDRESS,
               geojson: bool = True) -> Dict:
     """
-        Takes an id and retrieves the corresponding precipiation event from
+        Takes an id and retrieves the corresponding precipitation event from
         the web server. Simple implementation with requests for single event
         retrieval.
 
@@ -59,7 +61,7 @@ def get_events(event_ids: List[Union[str, int]],
                webserver_address: str = GS_SERVER_ADDRESS,
                geojson: bool = True) -> List[Dict]:
     """
-        Takes a list of event ids and retrieves the corresponding precipiation events
+        Takes a list of event ids and retrieves the corresponding precipitation events
         from the web server. Uses asyncio, aiohttp stuff for faster asynchronous
         retrieval.
 
@@ -79,10 +81,44 @@ def get_events(event_ids: List[Union[str, int]],
     return [json.loads(event) for event in events]
 
 
+def batched_get_events(event_ids: List[Union[str, int]],
+                       webserver_address: str = GS_SERVER_ADDRESS,
+                       geojson: bool = True,
+                       batch_size: int = 100) -> List[Dict]:
+    """
+        Takes a list of event ids and retrieves the corresponding precipitation events
+        from the web server in batches. Uses asyncio, aiohttp stuff for faster asynchronous
+        retrieval.
+
+        Parameters
+        ----------
+        event_ids: List of event ids
+        webserver_address: Address of the web server
+        geojson: Whether to request in geojson format
+        batch_size: Size of batches
+
+        Returns
+        -------
+        Events as a list of json dictionaries
+    """
+    batches = math.ceil(len(event_ids) / batch_size)
+    merge_list = []
+    for num, i in enumerate(range(0, len(event_ids), batch_size)):
+        t0 = time.time()
+        print("Working on batch {} of {}".format(num + 1, batches))
+        batch = event_ids[i:min(i + batch_size, len(event_ids))]
+        events_with_timeseries = get_events(batch, webserver_address, geojson)
+        merge_list += events_with_timeseries
+        print("Time needed for `%s': %.2fs"
+              % ("batch {}".format(num), time.time() - t0))
+    return merge_list
+
+
 def query_events(query: str,
                  webserver_address: str = GS_SERVER_ADDRESS,
                  geojson: bool = True,
-                 with_time_series: bool = True) -> List[Dict]:
+                 with_time_series: bool = True,
+                 batch_size: int = None) -> List[Dict]:
     """
         Takes a string query and retrieves the corresponding precipiation events
         from the web server.
@@ -93,16 +129,20 @@ def query_events(query: str,
         webserver_address: Address of the web server
         geojson: Whether to request in geojson format
         with_time_series: Whether to send get requests for each event to retrieve time series data
+        batch_size: If provided, request events with time series in batches
 
         Returns
         -------
         Events as a list of json dictionaries
     """
     url = webserver_address + "query?" + query
-    f = requests.get(url)  # TODO handle invalid urls
+    f = requests.get(url)
     json_dict = json.loads(f.text)
     if with_time_series:
         event_ids = [event["id"] for event in json_dict]
-        return get_events(event_ids, webserver_address, geojson)
+        if batch_size:
+            return get_events(event_ids, webserver_address, geojson)
+        else:
+            return batched_get_events(event_ids, webserver_address, geojson, batch_size)
     else:
         return json_dict

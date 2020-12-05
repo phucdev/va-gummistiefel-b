@@ -3,6 +3,7 @@ import time
 import argparse
 from pathlib import Path
 import math
+import pandas as pd
 
 from gummistiefel import GS_SERVER_ADDRESS
 
@@ -18,7 +19,7 @@ def main():
     # Set default values
     si_filter = True
     save_batches = True
-    batch_size = 1000
+    batch_size = 10000
     start_date = "1979-01-01T00:00:00"
     end_date = "2018-01-01T00:00:00"
     query = "subset=start({},{}".format(start_date, end_date)
