@@ -17,6 +17,7 @@ def main():
 
     # Set default values
     si_filter = True
+    save_batches = True
     batch_size = 1000
     start_date = "1979-01-01T00:00:00"
     end_date = "2018-01-01T00:00:00"
@@ -35,17 +36,19 @@ def main():
     merge_list = []
     for num, i in enumerate(range(0, len(filtered_events), batch_size)):
         t0 = time.time()
-        print("Working on batch {} of {}".format(num, batches))
+        print("Working on batch {} of {}".format(num+1, batches))
         batch = filtered_events[i:min(i+batch_size, len(filtered_events))]
         event_ids = [event["id"] for event in batch]
         events_with_timeseries = get_events(event_ids, GS_SERVER_ADDRESS, geojson=True)
-        save_file = save_path.joinpath("event_timeseries_batch{}.json".format(num))
         events_with_timeseries_df = pd.DataFrame(events_with_timeseries)
-        events_with_timeseries_df.to_json(save_file, orient='records', lines=True)
+        if save_batches:
+            save_file = save_path.joinpath("event_timeseries_batch{}.json".format(num))
+            events_with_timeseries_df.to_json(save_file, orient='records', lines=True)
         merge_list.append(events_with_timeseries_df)
         print("Time needed for `%s': %.2fs"
               % ("batch {}".format(num), time.time() - t0))
-    pd.concat(merge_list).to_json(save_path.joinpath("regen_event_list_ts.json"))
+    merge_list_df = pd.concat(merge_list)
+    merge_list_df.to_json(save_path.joinpath("regen_event_list_ts.json"), orient='records', lines=True)
     print('Done.')
 
 
