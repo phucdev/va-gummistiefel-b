@@ -1,6 +1,6 @@
 import asyncio
 import math
-
+import logging
 import aiohttp
 import json
 import requests
@@ -8,6 +8,9 @@ import time
 
 from typing import Union, List, Dict
 from gummistiefel import GS_SERVER_ADDRESS
+
+logger = logging.getLogger('gummistiefel')
+logger.setLevel(logging.INFO)
 
 
 async def download_site(url, session):
@@ -102,15 +105,15 @@ def batched_get_events(event_ids: List[Union[str, int]],
         Events as a list of json dictionaries
     """
     batches = math.ceil(len(event_ids) / batch_size)
-    print("Processing {} batches".format(batches))
+    logger.info("Processing {} batches".format(batches))
     merge_list = []
     for num, i in enumerate(range(0, len(event_ids), batch_size)):
         t0 = time.time()
         batch = event_ids[i:min(i + batch_size, len(event_ids))]
         events_with_timeseries = get_events(batch, webserver_address, geojson)
         merge_list += events_with_timeseries
-        print("Time needed for `%s': %.2fs"
-              % ("batch {}".format(num), time.time() - t0))
+        logger.info("Time needed for `%s': %.2fs"
+                    % ("batch {}".format(num), time.time() - t0))
     return merge_list
 
 
@@ -143,7 +146,7 @@ def query_events(query: str,
     if with_time_series:
         event_ids = [event["id"] for event in json_dict if (not si_filter) or (event["si"] > 0.0)]
         if batch_size > 0:
-            print("Process in batches of size {}".format(batch_size))
+            logger.info("Process in batches of size {}".format(batch_size))
             return batched_get_events(event_ids, webserver_address, geojson, batch_size)
         else:
             return get_events(event_ids, webserver_address, geojson)
