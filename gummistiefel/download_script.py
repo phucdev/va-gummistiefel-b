@@ -11,6 +11,10 @@ logger = logging.getLogger('gummistiefel')
 logger.setLevel(logging.INFO)
 
 
+def get_year(row):
+    return int(row['start'][:4])
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Gummistiefel downloader')
@@ -52,6 +56,8 @@ def main():
         logger.info("Time needed for `%s': %.2fs"
                     % ("batch {}".format(num), time.time() - t0))
     merge_list_df = pd.concat(merge_list)
+    merge_list_df = merge_list_df.sort_values(by=["start"])
+    merge_list_df['year'] = merge_list_df.apply(lambda row: get_year(row), axis=1)
     merge_list_df.to_json(save_path.joinpath("regen_event_list_ts.json"), orient='records', lines=True)
     logger.info('Done.')
 
