@@ -38,7 +38,8 @@ def get_event_url(event_id: Union[str, int],
 
 def get_event(event_id: Union[str, int],
               webserver_address: str = GS_SERVER_ADDRESS,
-              geojson: bool = True) -> Dict:
+              geojson: bool = True,
+              session: requests.sessions = None) -> Dict:
     """
         Takes an id and retrieves the corresponding precipitation event from
         the web server. Simple implementation with requests for single event
@@ -49,14 +50,16 @@ def get_event(event_id: Union[str, int],
         event_id: Document containing events
         webserver_address: Address of the web server
         geojson: Whether to request in geojson format
+        session: Session object
 
         Returns
         -------
         Event as json dictionary
     """
     url = get_event_url(event_id, webserver_address, geojson)
-    f = requests.get(url)  # TODO handle invalid urls
-    json_dict = json.loads(f.text)
+    response = session.get(url) if session else requests.get(url)
+    response.raise_for_status()
+    json_dict = json.loads(response.text)
     return json_dict
 
 
