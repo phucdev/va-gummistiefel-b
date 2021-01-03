@@ -3,3 +3,4 @@ requests
 pandas
 nest-asyncio
 seaborn
+plotly
