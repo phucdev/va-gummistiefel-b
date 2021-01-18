@@ -68,24 +68,44 @@ def get_bar_chart(df, heavy_precipitation_filter=False):
 
 
 def get_rose_chart(df):
-    num_of_events = pd.DataFrame(
-        df.groupby(['month']).id.count().reset_index(name='events')
-    )
-    num_of_events["month_str"] = months
-    reversed_num_of_events = num_of_events.sort_values(["month"], ascending=False)
+    heavy_precipitation_events = df[df["si"] > 0.0]
+    normal_precipitation_events = df[df["si"] == 0.0]
+
+    heavy_data = pd.DataFrame(
+        heavy_precipitation_events.groupby(['month']).id.count().reset_index(name='events')
+    ).sort_values(['month'], ascending=True)
+    normal_data = pd.DataFrame(
+        normal_precipitation_events.groupby(['month']).id.count().reset_index(name='events')
+    ).sort_values(['month'], ascending=True)
+
+    heavy_data["month_str"] = months
+    reversed_num_of_events_heavy = heavy_data.sort_values(["month"], ascending=False)
+
+    normal_data["month_str"] = months
+    reversed_num_of_events_normal = normal_data.sort_values(["month"], ascending=False)
     fig = go.Figure()
     fig.add_trace(go.Barpolar(
-        r=list(reversed_num_of_events["events"]),
-        theta=reversed_num_of_events["month_str"],
-        name="Number of events",
-        marker_color="rgb(46,109,255)",
+        r=list(reversed_num_of_events_normal["events"]),
+        theta=reversed_num_of_events_normal["month_str"],
+        name="Number of normal precipitation events",
+        marker_color="blue",
+        marker_line_color="black",
+        hoverinfo=["all"],
+        opacity=0.7
+    ))
+
+    fig.add_trace(go.Barpolar(
+        r=list(reversed_num_of_events_heavy["events"]),
+        theta=reversed_num_of_events_heavy["month_str"],
+        name="Number of heavy precipitation events",
+        marker_color="red",
         marker_line_color="black",
         hoverinfo=["all"],
         opacity=0.7
     ))
 
     fig.update_layout(
-        title="Number of heavy precipitation events",
+        title="Number of precipitation events per month",
         width=900,
         height=900,
         polar_angularaxis_rotation=90,
@@ -108,7 +128,7 @@ def get_rose_chart(df):
 
 
 def get_line_plot(df, column_name):
-    grouped_df = df.groupby(["year"])["si"].apply(list)
+    grouped_df = df.groupby(["year"])[column_name].apply(list)
     years = grouped_df.index
     cd_array = [np.array(e) for e in grouped_df.values]
     mci = np.array([mean_confidence_interval(e) for e in cd_array])
