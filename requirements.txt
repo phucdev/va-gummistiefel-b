@@ -4,3 +4,5 @@ pandas
 nest-asyncio
 seaborn
 plotly
+tqdm
+dash

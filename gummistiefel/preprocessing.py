@@ -32,5 +32,9 @@ def process_timeseries(df: pd.DataFrame):
             new_elem["datetime"] = row["datetime"] + datetime.timedelta(hours=i)
             new_elem["year"] = row["year"]
             new_elem["month"] = row["month"]
+            new_elem["area_ev"] = row["area"]
+            new_elem["length"] = row["length"]
+            new_elem["si_ev"] = row["si"]
+            new_elem["start"] = row["start"]
             df_list.append(new_elem)
     return pd.DataFrame(df_list)
