@@ -8,6 +8,11 @@ import scipy.stats
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
           "November", "December"]
 
+lat_min = 34.9099998474
+lat_max = 56.4199981689
+long_min = 2.6099998951
+long_max = 20.9799995422
+
 
 def mean_confidence_interval(data, confidence=0.95):
     a = 1.0 * np.array(data)
@@ -31,37 +36,47 @@ def get_time_frame(df, start: int = None, end: int = None):
     return time_frame
 
 
-def get_stacked_bar_chart(df):
+def get_stacked_histogram(df, bin_size=1):
     heavy_precipitation_events = df[df["si"] > 0.0]
     normal_precipitation_events = df[df["si"] == 0.0]
 
-    heavy_data = pd.DataFrame(
-        heavy_precipitation_events.groupby(['year']).id.count().reset_index(name='events')
-    ).sort_values(['year'], ascending=True)
-    normal_data = pd.DataFrame(
-        normal_precipitation_events.groupby(['year']).id.count().reset_index(name='events')
-    ).sort_values(['year'], ascending=True)
-    fig = go.Figure(data=[
-        go.Bar(name='Normal Precipitation Events', x=list(normal_data["year"]), y=list(normal_data["events"])),
-        go.Bar(name='Heavy Precipitation Events', x=list(heavy_data["year"]), y=list(heavy_data["events"]))
-    ])
-    # Change the bar mode
+    fig = go.Figure()
+    fig.add_trace(go.Histogram(
+        name="Normal precipitation events",
+        x=list(normal_precipitation_events["year"]),
+        histfunc="count",
+        autobinx=False,
+        xbins=dict(
+            start=min(list(normal_precipitation_events["year"])),
+            end=max(list(normal_precipitation_events["year"])),
+            size=bin_size)))
+    fig.add_trace(go.Histogram(
+        name="Heavy precipitation events",
+        x=list(heavy_precipitation_events["year"]),
+        histfunc="count",
+        autobinx=False,
+        xbins=dict(
+            start=min(list(heavy_precipitation_events["year"])),
+            end=max(list(heavy_precipitation_events["year"])),
+            size=bin_size)))
+
+    # The two histograms are drawn on top of another
     fig.update_layout(barmode='stack')
     return fig
 
 
-def get_bar_chart(df, heavy_precipitation_filter=False):
+def get_histogram(df, heavy_precipitation_filter=False, bin_size=1):
     filtered_df = df
     if heavy_precipitation_filter:
         filtered_df = filtered_df[filtered_df["si"] > 0.0]
-    grouped_df = pd.DataFrame(
-        filtered_df.groupby(['year']).id.count().reset_index(name='events')
-    ).sort_values(['year'], ascending=True)
-    fig = go.Figure(data=[go.Bar(
-        x=list(grouped_df["year"]),
-        y=list(grouped_df["events"]),
-        text=list(grouped_df["events"]),
-        textposition="auto"
+    fig = go.Figure(data=[go.Histogram(
+        x=list(filtered_df["year"]),
+        histfunc="count",
+        autobinx=False,
+        xbins=dict(
+            start=min(list(filtered_df["year"])),
+            end=max(list(filtered_df["year"])),
+            size=bin_size)
     )])
     # TODO add trend line?
     return fig
@@ -176,12 +191,27 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None):
         lat=filtered_df['latMax'],
         text=filtered_df['si'],
         mode='markers',
-        marker_color=filtered_df[column_name],
+        marker=dict(
+            size=8,
+            opacity=0.8,
+            reversescale=True,
+            autocolorscale=False,
+            colorscale='Blues',
+            cmin=0,
+            color=filtered_df[column_name],
+            cmax=filtered_df[column_name].max(),
+            colorbar_title=f"{column_name}"
+        )
     ))
 
     fig.update_layout(
         title=f'Heavy precipitation events ({column_name})',
         geo_scope='europe',
+        geo=dict(
+            # Add coordinates limits on a map
+            lataxis=dict(range=[lat_min, lat_max]),
+            lonaxis=dict(range=[long_min, long_max])
+        )
     )
     return fig
 
@@ -192,3 +222,9 @@ def get_boxplot(df, column_name):
         go.Box(y=list(df[column_name]), name=column_name)
     )
     return fig
+
+
+def get_max_id(df, column_name):
+    assert column_name in df, f"{column_name} not in df"
+    max_length_event_id = df.iloc[df[column_name].argmax()]["id"]
+    return max_length_event_id
