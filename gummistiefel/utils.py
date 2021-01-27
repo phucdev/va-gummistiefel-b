@@ -61,28 +61,89 @@ def get_stacked_histogram(df, bin_size=1):
             size=bin_size)))
 
     # The two histograms are drawn on top of another
-    fig.update_layout(barmode='stack')
+    fig.update_layout(barmode='relative')
     return fig
 
 
-def get_histogram(df, heavy_precipitation_filter=False, bin_size=1):
+def get_histogram(df, column_name=None, heavy_precipitation_filter=False, bin_size=1, hist_func="count"):
+    assert hist_func in ["count", "sum", "avg", "min", "max"], f"{hist_func} not a valid hist_func"
+    if column_name:
+        assert column_name in df, f"{column_name} not in df"
     filtered_df = df
     if heavy_precipitation_filter:
         filtered_df = filtered_df[filtered_df["si"] > 0.0]
-    fig = go.Figure(data=[go.Histogram(
-        x=list(filtered_df["year"]),
-        histfunc="count",
-        autobinx=False,
-        xbins=dict(
-            start=min(list(filtered_df["year"])),
-            end=max(list(filtered_df["year"])),
-            size=bin_size)
-    )])
+    fig = go.Figure()
+    if hist_func == "count":
+        fig.add_trace(go.Histogram(
+            name=hist_func,
+            x=list(filtered_df["year"]),
+            histfunc=hist_func,
+            autobinx=False,
+            xbins=dict(
+                start=min(list(filtered_df["year"])),
+                end=max(list(filtered_df["year"])),
+                size=bin_size)
+        ))
+    elif column_name:
+        if hist_func in ["avg", "min", "max"]:
+            fig.add_trace(go.Histogram(
+                name=f"avg {column_name}",
+                x=list(filtered_df["year"]),
+                y=list(filtered_df[column_name]),
+                histfunc="avg",
+                autobinx=False,
+                opacity=0.75,
+                xbins=dict(
+                    start=min(list(filtered_df["year"])),
+                    end=max(list(filtered_df["year"])),
+                    size=bin_size)
+            ))
+            if hist_func == "avg":
+                alt_hist_func = "max"
+            else:
+                alt_hist_func = hist_func
+            fig.add_trace(go.Histogram(
+                name=f"{alt_hist_func} {column_name}",
+                x=list(filtered_df["year"]),
+                y=list(filtered_df[column_name]),
+                histfunc=alt_hist_func,
+                autobinx=False,
+                opacity=0.75,
+                xbins=dict(
+                    start=min(list(filtered_df["year"])),
+                    end=max(list(filtered_df["year"])),
+                    size=bin_size),
+                yaxis="y2"
+            ))
+            fig.update_layout(
+                yaxis=dict(
+                    title=f"avg {column_name}",
+                    titlefont=dict(
+                        color="#1f77b4"
+                    ),
+                    tickfont=dict(
+                        color="#1f77b4"
+                    )
+                ),
+                yaxis2=dict(
+                    title=f"{alt_hist_func} {column_name}",
+                    titlefont=dict(
+                        color="#ff7f0e"
+                    ),
+                    tickfont=dict(
+                        color="#ff7f0e"
+                    ),
+                    anchor="x",
+                    overlaying="y",
+                    side="right",
+                )
+            )
+
     # TODO add trend line?
     return fig
 
 
-def get_rose_chart(df):
+def get_rose_chart(df, max_radius=40000):
     heavy_precipitation_events = df[df["si"] > 0.0]
     normal_precipitation_events = df[df["si"] == 0.0]
 
@@ -135,7 +196,8 @@ def get_rose_chart(df):
                 showline=True,
                 linewidth=2,
                 gridcolor="white",
-                gridwidth=2
+                gridwidth=2,
+                range=(0, max_radius),
             )
         )
     )
@@ -192,7 +254,7 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None):
         text=filtered_df['si'],
         mode='markers',
         marker=dict(
-            size=8,
+            size=filtered_df['area']*10,
             opacity=0.8,
             reversescale=True,
             autocolorscale=False,
@@ -228,3 +290,53 @@ def get_max_id(df, column_name):
     assert column_name in df, f"{column_name} not in df"
     max_length_event_id = df.iloc[df[column_name].argmax()]["id"]
     return max_length_event_id
+
+
+def get_stats(df, ts_df, heavy_precipitation_filter=False, use_si_ev=True):
+    # expect a df with timeseries
+    filtered_df: pd.DataFrame = df
+    filtered_ts_df: pd.DataFrame = ts_df
+    if heavy_precipitation_filter:
+        filtered_df = df[df["si"] > 0]
+        filter_category = "si_ev" if use_si_ev else "si"
+        filtered_ts_df = ts_df[ts_df[filter_category] > 0]
+
+    delta = df["datetime"].max() - df["datetime"].min()
+    num_of_days = delta.days
+    num_of_events = len(filtered_df)
+    num_of_ts_events = len(filtered_ts_df)
+
+    si_sum = filtered_df["si"].sum()
+    si_ts_sum = filtered_ts_df["si"].sum()
+    si_per_day = si_sum/num_of_days
+    si_per_event = si_sum/num_of_events
+    si_per_ts_event = si_ts_sum/num_of_ts_events
+    length_per_day = filtered_df["length"].sum()/num_of_days
+    length_per_event = filtered_df["length"].sum()/num_of_events
+    area_per_day = filtered_df["area"].sum() / num_of_days
+    area_per_event = filtered_df["area"].sum() / num_of_events
+    max_si = filtered_df["si"].max()
+    max_si_event_id = filtered_df.sort_values(by="si", ascending=False).iloc[0]["id"]
+    max_length = filtered_df["length"].max()
+    max_length_event_id = filtered_df.sort_values(by="length", ascending=False).iloc[0]["id"]
+    max_area = filtered_df["area"].max()
+    max_area_event_id = filtered_df.sort_values(by="area", ascending=False).iloc[0]["id"]
+
+    stats_dict = {
+        "si_sum": si_sum,
+        "si_ts_sum": si_ts_sum,
+        "Average si_per_day": si_per_day,
+        "Average si_per_event": si_per_event,
+        "Average si_per_ts_event": si_per_ts_event,
+        "Average length_per_day": length_per_day,
+        "Average length_per_event": length_per_event,
+        "Average area_per_day": area_per_day,
+        "Average area_per_event": area_per_event,
+        "Max si": max_si,
+        "Event id with max SI": max_si_event_id,
+        "Max length": max_length,
+        "Event id with max length": max_length_event_id,
+        "Max area": max_area,
+        "Event id with max area": max_area_event_id
+    }
+    return pd.DataFrame([stats_dict])
