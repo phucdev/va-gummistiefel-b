@@ -18,12 +18,12 @@ normal_precipitation_events_ts = ts_events_df[ts_events_df["si"] == 0.0]
 stats_table = utils.get_stats(events_df, ts_events_df)
 
 # Get options and range
-si_min = min(events_df["si"].min(), ts_events_df["si"].min())
-si_max = max(events_df["si"].max(), ts_events_df["si"].max())
-length_min = ts_events_df["length"].min()
-length_max = ts_events_df["length"].max()
-area_min = ts_events_df["area"].min()
-area_max = ts_events_df["area"].max()
+si_min = 0  # float(min(events_df["si"].min(), ts_events_df["si"].min()))
+si_max = float(max(events_df["si"].max(), ts_events_df["si"].max()))
+length_min = int(ts_events_df["length"].min())
+length_max = int(ts_events_df["length"].max())
+area_min = 0  # float(ts_events_df["area"].min())
+area_max = float(ts_events_df["area"].max())
 min_date = events_df.datetime.min().date()
 max_date = events_df.datetime.max().date()
 
@@ -79,75 +79,75 @@ app.layout = html.Div(children=[
         ],
         className="menu",
     ),
-    # html.Div(
-    #     children=[
-    #         html.Div(
-    #             children=[
-    #                 html.Div(children="Si range", className="menu-title"),
-    #                 dcc.RangeSlider(
-    #                     id="si_range_slider",
-    #                     min=si_min,
-    #                     max=si_max,
-    #                     step=None,
-    #                     marks={
-    #                         si_min: f'{si_min}',
-    #                         si_max: f'{si_max}'
-    #                     },
-    #                     value=[si_min, si_max],
-    #                     tooltip={"always_visible": True, "placement": "right"}
-    #                 ),
-    #             ],
-    #             className="slider",
-    #         )
-    #     ],
-    #     className="menu",
-    # ),
-    # html.Div(
-    #     children=[
-    #         html.Div(
-    #             children=[
-    #                 html.Div(children="Length range", className="menu-title"),
-    #                 dcc.RangeSlider(
-    #                     id="length_range_slider",
-    #                     min=length_min,
-    #                     max=length_max,
-    #                     step=1,
-    #                     marks={
-    #                         length_min: f'{length_min}',
-    #                         length_max: f'{length_max}'
-    #                     },
-    #                     value=[length_min, length_max],
-    #                     tooltip={"always_visible": True, "placement": "right"}
-    #                 ),
-    #             ],
-    #             className="slider",
-    #         )
-    #     ],
-    #     className="menu",
-    # ),
-    # html.Div(
-    #     children=[
-    #         html.Div(
-    #             children=[
-    #                 html.Div(children="Area range", className="menu-title"),
-    #                 dcc.RangeSlider(
-    #                     id="area_range_slider",
-    #                     min=area_min,
-    #                     max=area_max,
-    #                     step=None,
-    #                     marks={
-    #                         area_min: f'{area_min}',
-    #                         area_max: f'{area_max}'
-    #                     },
-    #                     value=[area_min, area_max],
-    #                     tooltip={"always_visible": True, "placement": "right"}
-    #                 ),
-    #             ],
-    #             className="slider",
-    #         )
-    #     ],
-    #     className="menu",
-    # ),
+    html.Div(
+        children=[
+            html.Div(
+                children=[
+                    html.Div(children="SI range", className="menu-title"),
+                    dcc.RangeSlider(
+                        id="si_range_slider",
+                        min=si_min,
+                        max=si_max,
+                        step=0.1,
+                        marks={
+                            si_min: f'{si_min}',
+                            si_max: f'{si_max}'
+                        },
+                        value=[si_min, si_max],
+                        tooltip={"always_visible": True, "placement": "right"}
+                    ),
+                ],
+                className="slider",
+            )
+        ],
+        className="menu",
+    ),
+    html.Div(
+        children=[
+            html.Div(
+                children=[
+                    html.Div(children="Length range", className="menu-title"),
+                    dcc.RangeSlider(
+                        id="length_range_slider",
+                        min=length_min,
+                        max=length_max,
+                        step=1,
+                        marks={
+                            length_min: f'{length_min}',
+                            length_max: f'{length_max}'
+                        },
+                        value=[length_min, length_max],
+                        tooltip={"always_visible": True, "placement": "right"}
+                    ),
+                ],
+                className="slider",
+            )
+        ],
+        className="menu",
+    ),
+    html.Div(
+        children=[
+            html.Div(
+                children=[
+                    html.Div(children="Area range", className="menu-title"),
+                    dcc.RangeSlider(
+                        id="area_range_slider",
+                        min=area_min,
+                        max=area_max,
+                        step=0.1,
+                        marks={
+                            area_min: f'{area_min}',
+                            area_max: f'{area_max}'
+                        },
+                        value=[area_min, area_max],
+                        tooltip={"always_visible": True, "placement": "right"}
+                    ),
+                ],
+                className="slider",
+            )
+        ],
+        className="menu",
+    ),
     html.Div(
         children=[
             html.Div(
@@ -238,9 +238,9 @@ app.layout = html.Div(children=[
     ],
     [
         Input(component_id='bin_size_slider', component_property='value'),
-        # Input(component_id='si_range_slider', component_property='value'),
-        # Input(component_id='length_range_slider', component_property='value'),
-        # Input(component_id='area_range_slider', component_property='value'),
+        Input(component_id='si_range_slider', component_property='value'),
+        Input(component_id='length_range_slider', component_property='value'),
+        Input(component_id='area_range_slider', component_property='value'),
         Input(component_id='property_list', component_property='value'),
         Input(component_id='type_list', component_property='value'),
         Input(component_id='date_range', component_property='start_date'),
@@ -248,7 +248,7 @@ app.layout = html.Div(children=[
     ]
 )
 def update_graphs(bin_size,
-                  # si_range, length_range, area_range,
+                  si_range, length_range, area_range,
                   prec_property, prec_type, start_date, end_date):
     heavy_precipitation_filter = True if prec_type == "Heavy" else False
     filtered_df = events_df[events_df["si"] > 0.0] if heavy_precipitation_filter else events_df
@@ -258,28 +258,31 @@ def update_graphs(bin_size,
     mask = (
             (filtered_df["datetime"] >= start_date_dt)
             & (filtered_df["datetime"] <= end_date_dt)
-            # & (filtered_df["si"] >= si_range[0])
-            # & (filtered_df["si"] >= si_range[1])
-            # & (filtered_df["length"] >= length_range[0])
-            # & (filtered_df["length"] >= length_range[1])
-            # & (filtered_df["area"] >= area_range[0])
-            # & (filtered_df["area"] >= area_range[1])
+            & (filtered_df["si"] >= si_range[0])
+            & (filtered_df["si"] <= si_range[1])
+            & (filtered_df["length"] >= length_range[0])
+            & (filtered_df["length"] <= length_range[1])
+            & (filtered_df["area"] >= area_range[0])
+            & (filtered_df["area"] <= area_range[1])
     )
     ts_mask = (
             (filtered_ts_df["datetime"] >= start_date_dt)
             & (filtered_ts_df["datetime"] <= end_date_dt)
-            # & (filtered_ts_df["si_ev"] >= si_range[0])
-            # & (filtered_ts_df["si_ev"] >= si_range[1])
-            # & (filtered_ts_df["length"] >= length_range[0])
-            # & (filtered_ts_df["length"] >= length_range[1])
-            # & (filtered_ts_df["area"] >= area_range[0])
-            # & (filtered_ts_df["area"] >= area_range[1])
+            & (filtered_ts_df["si_ev"] >= si_range[0])
+            & (filtered_ts_df["si_ev"] <= si_range[1])
+            & (filtered_ts_df["length"] >= length_range[0])
+            & (filtered_ts_df["length"] <= length_range[1])
+            & (filtered_ts_df["area"] >= area_range[0])
+            & (filtered_ts_df["area"] <= area_range[1])
     )
     filtered_df = filtered_df.loc[mask, :]
     filtered_ts_df = filtered_ts_df.loc[ts_mask, :]
+    filtered_df = filtered_df[filtered_df["si"] > 0.0] if heavy_precipitation_filter else filtered_df
+    filtered_ts_df = filtered_ts_df[filtered_ts_df["si_ev"] > 0.0] if heavy_precipitation_filter else filtered_ts_df
 
-    filtered_stats_table = utils.get_stats(filtered_df, filtered_ts_df).to_dict(orient="records")
     u_events_graph = utils.get_stacked_histogram(events_df, bin_size=bin_size)
+    filtered_stats_table = utils.get_stats(filtered_df, filtered_ts_df).to_dict(orient="records")
+
     if prec_property in ["maxPrec", "meanPre"]:
         u_property_graph = utils.get_histogram(filtered_ts_df, bin_size=bin_size, column_name=prec_property,
                                                hist_func="avg")

@@ -244,7 +244,7 @@ def get_line_plot(df, column_name):
     return fig
 
 
-def get_event_on_map(df, column_name="si", event_ids: List[int] = None):
+def get_event_on_map(df, column_name="si", event_ids: List[int] = None, scaling_factor: int = 5):
     filtered_df = df
     if event_ids:
         filtered_df = filtered_df[filtered_df["id"].isin(event_ids)]
@@ -254,11 +254,11 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None):
         text=filtered_df['si'],
         mode='markers',
         marker=dict(
-            size=filtered_df['area']*10,
+            size=filtered_df['area']*scaling_factor,
             opacity=0.8,
             reversescale=True,
             autocolorscale=False,
-            colorscale='Blues',
+            colorscale='Blues_r',
             cmin=0,
             color=filtered_df[column_name],
             cmax=filtered_df[column_name].max(),
@@ -308,13 +308,13 @@ def get_stats(df, ts_df, heavy_precipitation_filter=False, use_si_ev=True):
 
     si_sum = filtered_df["si"].sum()
     si_ts_sum = filtered_ts_df["si"].sum()
-    si_per_day = si_sum/num_of_days
-    si_per_event = si_sum/num_of_events
-    si_per_ts_event = si_ts_sum/num_of_ts_events
-    length_per_day = filtered_df["length"].sum()/num_of_days
-    length_per_event = filtered_df["length"].sum()/num_of_events
-    area_per_day = filtered_df["area"].sum() / num_of_days
-    area_per_event = filtered_df["area"].sum() / num_of_events
+    si_per_day = 0 if num_of_days <= 0 else si_sum/num_of_days
+    si_per_event = 0 if num_of_days <= 0 else si_sum/num_of_events
+    si_per_ts_event = 0 if num_of_days <= 0 else si_ts_sum/num_of_ts_events
+    length_per_day = 0 if num_of_days <= 0 else filtered_df["length"].sum()/num_of_days
+    length_per_event = 0 if num_of_days <= 0 else filtered_df["length"].sum()/num_of_events
+    area_per_day = 0 if num_of_days <= 0 else filtered_df["area"].sum() / num_of_days
+    area_per_event = 0 if num_of_days <= 0 else filtered_df["area"].sum() / num_of_events
     max_si = filtered_df["si"].max()
     max_si_event_id = filtered_df.sort_values(by="si", ascending=False).iloc[0]["id"]
     max_length = filtered_df["length"].max()
