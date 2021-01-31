@@ -17,6 +17,16 @@ heavy_precipitation_events_ts = ts_events_df[ts_events_df["si"] > 0.0]
 normal_precipitation_events_ts = ts_events_df[ts_events_df["si"] == 0.0]
 stats_table = utils.get_stats(events_df, ts_events_df)
 
+# Get options and range
+si_min = min(events_df["si"].min(), ts_events_df["si"].min())
+si_max = max(events_df["si"].max(), ts_events_df["si"].max())
+length_min = ts_events_df["length"].min()
+length_max = ts_events_df["length"].max()
+area_min = ts_events_df["area"].min()
+area_max = ts_events_df["area"].max()
+min_date = events_df.datetime.min().date()
+max_date = events_df.datetime.max().date()
+
 # Create the Dash app
 external_stylesheets = [
     {
@@ -49,6 +59,7 @@ app.layout = html.Div(children=[
         children=[
             html.Div(
                 children=[
+                    html.Div(children="Bin size", className="menu-title"),
                     dcc.Slider(
                         id="bin_size_slider",
                         min=1,
@@ -59,11 +70,86 @@ app.layout = html.Div(children=[
                             5: '5',
                             10: '10'
                         },
-                        value=1
+                        value=1,
+                        tooltip={"always_visible": True, "placement": "right"}
                     ),
                 ],
                 className="slider",
-            ),
+            )
+        ],
+        className="menu",
+    ),
+    html.Div(
+        children=[
+            html.Div(
+                children=[
+                    html.Div(children="Si range", className="menu-title"),
+                    dcc.RangeSlider(
+                        id="si_range_slider",
+                        min=si_min,
+                        max=si_max,
+                        step=None,
+                        marks={
+                            si_min: f'{si_min}',
+                            si_max: f'{si_max}'
+                        },
+                        value=[si_min, si_max],
+                        tooltip={"always_visible": True, "placement": "right"}
+                    ),
+                ],
+                className="slider",
+            )
+        ],
+        className="menu",
+    ),
+    html.Div(
+        children=[
+            html.Div(
+                children=[
+                    html.Div(children="Length range", className="menu-title"),
+                    dcc.RangeSlider(
+                        id="length_range_slider",
+                        min=length_min,
+                        max=length_max,
+                        step=1,
+                        marks={
+                            length_min: f'{length_min}',
+                            length_max: f'{length_max}'
+                        },
+                        value=[length_min, length_max],
+                        tooltip={"always_visible": True, "placement": "right"}
+                    ),
+                ],
+                className="slider",
+            )
+        ],
+        className="menu",
+    ),
+    html.Div(
+        children=[
+            html.Div(
+                children=[
+                    html.Div(children="Area range", className="menu-title"),
+                    dcc.Slider(
+                        id="area_range_slider",
+                        min=area_min,
+                        max=area_max,
+                        step=None,
+                        marks={
+                            area_min: f'{area_min}',
+                            area_max: f'{area_max}'
+                        },
+                        value=[area_min, area_max],
+                        tooltip={"always_visible": True, "placement": "right"}
+                    ),
+                ],
+                className="slider",
+            )
+        ],
+        className="menu",
+    ),
+    html.Div(
+        children=[
             html.Div(
                 children=[
                     html.Div(children="Property", className="menu-title"),
@@ -148,43 +234,66 @@ app.layout = html.Div(children=[
 
 
 # Set up the callback function
+# TODO maybe use State instead of Input and use Button to initiate update
 @app.callback(
-    # Output(component_id='stats_table', component_property='data'),
-    Output(component_id='events_graph', component_property='figure'),
-    Output(component_id='property_graph', component_property='figure'),
-    Input(component_id='bin_size_slider', component_property='value'),
-    Input(component_id='property_list', component_property='value'),
-    Input(component_id='type_list', component_property='value'),
-    Input(component_id='date_range', component_property='start_date'),
-    Input(component_id='date_range', component_property='end_date'),
+    [
+        # Output(component_id='stats_table', component_property='data'),
+        Output(component_id='events_graph', component_property='figure'),
+        Output(component_id='property_graph', component_property='figure'),
+        Output(component_id='map_graph', component_property='figure'),
+    ],
+    [
+        Input(component_id='bin_size_slider', component_property='value'),
+        Input(component_id='si_range_slider', component_property='value'),
+        Input(component_id='length_range_slider', component_property='value'),
+        Input(component_id='area_range_slider', component_property='value'),
+        Input(component_id='property_list', component_property='value'),
+        Input(component_id='type_list', component_property='value'),
+        Input(component_id='date_range', component_property='start_date'),
+        Input(component_id='date_range', component_property='end_date')
+    ]
 )
-def update_graphs(bin_size, prec_property, prec_type, start_date, end_date):
+def update_graphs(bin_size, si_range, length_range, area_range, prec_property, prec_type, start_date, end_date):
     heavy_precipitation_filter = True if prec_type == "Heavy" else False
     filtered_df = events_df[events_df["si"] > 0.0] if heavy_precipitation_filter else events_df
     filtered_ts_df = ts_events_df[ts_events_df["si_ev"] > 0.0] if heavy_precipitation_filter else ts_events_df
     start_date_dt = datetime.combine(datetime.strptime(start_date, '%Y-%m-%d'), datetime.min.time())
     end_date_dt = datetime.combine(datetime.strptime(end_date, '%Y-%m-%d'), datetime.max.time())
     mask = (
-        (filtered_df["datetime"] >= start_date_dt)
-        & (filtered_df["datetime"] <= end_date_dt)
+            (filtered_df["datetime"] >= start_date_dt)
+            & (filtered_df["datetime"] <= end_date_dt)
+            & (filtered_df["si"] >= si_range[0])
+            & (filtered_df["si"] >= si_range[1])
+            & (filtered_df["length"] >= length_range[0])
+            & (filtered_df["length"] >= length_range[1])
+            & (filtered_df["area"] >= area_range[0])
+            & (filtered_df["area"] >= area_range[1])
     )
     ts_mask = (
             (filtered_ts_df["datetime"] >= start_date_dt)
             & (filtered_ts_df["datetime"] <= end_date_dt)
+            & (filtered_ts_df["si_ev"] >= si_range[0])
+            & (filtered_ts_df["si_ev"] >= si_range[1])
+            & (filtered_ts_df["length"] >= length_range[0])
+            & (filtered_ts_df["length"] >= length_range[1])
+            & (filtered_ts_df["area"] >= area_range[0])
+            & (filtered_ts_df["area"] >= area_range[1])
     )
     filtered_df = filtered_df.loc[mask, :]
     filtered_ts_df = filtered_ts_df.loc[ts_mask, :]
 
     filtered_stats_table = utils.get_stats(filtered_df, filtered_ts_df).to_dict(orient="records")
-    events_graph = utils.get_stacked_histogram(events_df, bin_size=bin_size)
+    u_events_graph = utils.get_stacked_histogram(events_df, bin_size=bin_size)
     if prec_property in ["maxPrec", "meanPre"]:
-        property_graph = utils.get_histogram(filtered_ts_df, bin_size=bin_size, column_name=prec_property,
-                                             hist_func="avg")
+        u_property_graph = utils.get_histogram(filtered_ts_df, bin_size=bin_size, column_name=prec_property,
+                                               hist_func="avg")
     else:
-        property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property,
-                                             hist_func="avg")
+        u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property,
+                                               hist_func="avg")
+    extreme_event_id = filtered_df.iloc[filtered_df[prec_property].argmax()]["id"]
+    u_map_graph = utils.get_event_on_map(filtered_df, event_ids=[extreme_event_id])  # specify col name or keep default?
     # return filtered_stats_table, events_graph, property_graph
-    return events_graph, property_graph
+    return u_events_graph, u_property_graph, u_map_graph
 
 
 # Run local server
