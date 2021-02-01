@@ -1,6 +1,7 @@
 from typing import List
 
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 import scipy.stats
@@ -41,15 +42,16 @@ def get_stacked_histogram(df, bin_size=1):
     normal_precipitation_events = df[df["si"] == 0.0]
 
     fig = go.Figure()
-    fig.add_trace(go.Histogram(
-        name="Normal precipitation events",
-        x=list(normal_precipitation_events["year"]),
-        histfunc="count",
-        autobinx=False,
-        xbins=dict(
-            start=min(list(normal_precipitation_events["year"])),
-            end=max(list(normal_precipitation_events["year"])),
-            size=bin_size)))
+    if len(normal_precipitation_events) > 0:
+        fig.add_trace(go.Histogram(
+            name="Normal precipitation events",
+            x=list(normal_precipitation_events["year"]),
+            histfunc="count",
+            autobinx=False,
+            xbins=dict(
+                start=min(list(normal_precipitation_events["year"])),
+                end=max(list(normal_precipitation_events["year"])),
+                size=bin_size)))
     fig.add_trace(go.Histogram(
         name="Heavy precipitation events",
         x=list(heavy_precipitation_events["year"]),
@@ -60,8 +62,9 @@ def get_stacked_histogram(df, bin_size=1):
             end=max(list(heavy_precipitation_events["year"])),
             size=bin_size)))
 
-    # The two histograms are drawn on top of another
-    fig.update_layout(barmode='relative')
+    if len(normal_precipitation_events) > 0:
+        # The two histograms are drawn on top of another
+        fig.update_layout(barmode='relative')
     return fig
 
 
@@ -254,7 +257,7 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None, scaling_
         text=filtered_df['si'],
         mode='markers',
         marker=dict(
-            size=filtered_df['area']*scaling_factor,
+            size=filtered_df['area'] * scaling_factor,
             opacity=0.8,
             reversescale=True,
             autocolorscale=False,
@@ -278,6 +281,65 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None, scaling_
     return fig
 
 
+def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
+    df["text"] = df["id"].astype(str) + " si(" + df["si"].astype(str) + "), length(" + df["length"].astype(str) \
+                 + "), area(" + df["area"].astype(str) + ")"
+    max_si_event_id, max_si = get_max_id(df, "si", return_value=True)
+    max_length_event_id, max_length = get_max_id(df, "length", return_value=True)
+    max_area_event_id, max_area = get_max_id(df, "area", return_value=True)
+    fig = make_subplots(
+        rows=1, cols=3,
+        specs=[[{"type": "scattergeo"}, {"type": "scattergeo"}, {"type": "scattergeo"}]],
+        subplot_titles=[
+            "Event with max si of {:4.3f}".format(max_si),
+            "Event with max length of {}".format(max_length),
+            "Event with max area of {:4.3f}".format(max_area)
+        ],
+    )
+    event_ids = [max_si_event_id, max_length_event_id, max_area_event_id]
+    geo_dict = dict(
+        scope="europe",
+        # Add coordinates limits on a map
+        lataxis=dict(range=[lat_min, lat_max]),
+        lonaxis=dict(range=[long_min, long_max])
+    )
+
+    for i, event_id in enumerate(event_ids):
+        filtered_df = df[df["id"].isin([event_id])]
+        fig.add_trace(
+            go.Scattergeo(
+                lon=filtered_df['lonMax'],
+                lat=filtered_df['latMax'],
+                text=filtered_df['text'],
+                mode='markers',
+                marker=dict(
+                    size=filtered_df['area'] * scaling_factor,
+                    opacity=0.8,
+                    color=filtered_df[column_name],
+                    coloraxis="coloraxis"
+                ),
+                geo=f"geo{i+1}"
+            ),
+            row=1, col=i + 1
+        )
+    fig.update_layout(
+        title=f'Extreme precipitation events',
+        coloraxis=dict(
+            reversescale=True,
+            autocolorscale=False,
+            colorscale='Blues_r',
+            cmin=0,
+            cmax=df[column_name].max(),
+            colorbar_title=f"{column_name}"
+        ),
+        showlegend=False,
+        geo=geo_dict,
+        geo2=geo_dict,
+        geo3=geo_dict
+    )
+    return fig
+
+
 def get_boxplot(df, column_name):
     fig = go.Figure()
     fig.add_trace(
@@ -286,10 +348,13 @@ def get_boxplot(df, column_name):
     return fig
 
 
-def get_max_id(df, column_name):
+def get_max_id(df, column_name, return_value=False):
     assert column_name in df, f"{column_name} not in df"
-    max_length_event_id = df.iloc[df[column_name].argmax()]["id"]
-    return max_length_event_id
+    max_event = df.iloc[df[column_name].argmax()]
+    if return_value:
+        return max_event["id"], max_event[column_name]
+    else:
+        return max_event["id"]
 
 
 def get_stats(df, ts_df, heavy_precipitation_filter=False, use_si_ev=True):
@@ -308,19 +373,16 @@ def get_stats(df, ts_df, heavy_precipitation_filter=False, use_si_ev=True):
 
     si_sum = filtered_df["si"].sum()
     si_ts_sum = filtered_ts_df["si"].sum()
-    si_per_day = 0 if num_of_days <= 0 else si_sum/num_of_days
-    si_per_event = 0 if num_of_days <= 0 else si_sum/num_of_events
-    si_per_ts_event = 0 if num_of_days <= 0 else si_ts_sum/num_of_ts_events
-    length_per_day = 0 if num_of_days <= 0 else filtered_df["length"].sum()/num_of_days
-    length_per_event = 0 if num_of_days <= 0 else filtered_df["length"].sum()/num_of_events
+    si_per_day = 0 if num_of_days <= 0 else si_sum / num_of_days
+    si_per_event = 0 if num_of_days <= 0 else si_sum / num_of_events
+    si_per_ts_event = 0 if num_of_days <= 0 else si_ts_sum / num_of_ts_events
+    length_per_day = 0 if num_of_days <= 0 else filtered_df["length"].sum() / num_of_days
+    length_per_event = 0 if num_of_days <= 0 else filtered_df["length"].sum() / num_of_events
     area_per_day = 0 if num_of_days <= 0 else filtered_df["area"].sum() / num_of_days
     area_per_event = 0 if num_of_days <= 0 else filtered_df["area"].sum() / num_of_events
-    max_si = filtered_df["si"].max()
-    max_si_event_id = filtered_df.sort_values(by="si", ascending=False).iloc[0]["id"]
-    max_length = filtered_df["length"].max()
-    max_length_event_id = filtered_df.sort_values(by="length", ascending=False).iloc[0]["id"]
-    max_area = filtered_df["area"].max()
-    max_area_event_id = filtered_df.sort_values(by="area", ascending=False).iloc[0]["id"]
+    max_si, max_si_event_id = get_max_id(filtered_df, "si", return_value=True)
+    max_length, max_length_event_id = get_max_id(filtered_df, "length", return_value=True)
+    max_area, max_area_event_id = get_max_id(filtered_df, "area", return_value=True)
 
     stats_dict = {
         # "si_sum": si_sum,

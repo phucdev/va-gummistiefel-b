@@ -251,8 +251,8 @@ def update_graphs(bin_size,
                   si_range, length_range, area_range,
                   prec_property, prec_type, start_date, end_date):
     heavy_precipitation_filter = True if prec_type == "Heavy" else False
-    filtered_df = events_df
-    filtered_ts_df = ts_events_df
+    filtered_df = events_df[events_df["si"] > 0.0] if heavy_precipitation_filter else events_df
+    filtered_ts_df = ts_events_df[ts_events_df["si_ev"] > 0.0] if heavy_precipitation_filter else ts_events_df
     start_date_dt = datetime.combine(datetime.strptime(start_date, '%Y-%m-%d'), datetime.min.time())
     end_date_dt = datetime.combine(datetime.strptime(end_date, '%Y-%m-%d'), datetime.max.time())
     mask = (
@@ -280,8 +280,7 @@ def update_graphs(bin_size,
     filtered_df = filtered_df[filtered_df["si"] > 0.0] if heavy_precipitation_filter else filtered_df
     filtered_ts_df = filtered_ts_df[filtered_ts_df["si_ev"] > 0.0] if heavy_precipitation_filter else filtered_ts_df
 
-    u_events_graph = utils.get_stacked_histogram(filtered_df, bin_size=bin_size)
-    u_events_graph.update_layout(title=f"Number of {prec_type} precipitation events")
+    u_events_graph = utils.get_stacked_histogram(events_df, bin_size=bin_size)
     filtered_stats_table = utils.get_stats(filtered_df, filtered_ts_df).to_dict(orient="records")
 
     if prec_property in ["maxPrec", "meanPre"]:
@@ -290,10 +289,12 @@ def update_graphs(bin_size,
     else:
         u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property,
                                                hist_func="avg")
-    u_property_graph.update_layout(
-        title=f"Histogram of average and max {prec_property.lower()} (bin size: {bin_size})"
+    u_prec_property = "si_ev" if prec_property == "si" else prec_property
+    extreme_event_id = filtered_ts_df.iloc[filtered_ts_df[u_prec_property].argmax()]["id"]
+    u_map_graph = utils.get_event_on_map(filtered_ts_df, event_ids=[extreme_event_id])  # specify col or keep default?
+    u_map_graph.update_layout(
+        title=f'Event with max {prec_property} ({extreme_event_id})',
     )
-    u_map_graph = utils.get_extreme_events_on_map(filtered_ts_df)  # specify col or keep default?
     return u_events_graph, u_property_graph, u_map_graph
     # return filtered_stats_table, u_events_graph, u_property_graph, u_map_graph
 
