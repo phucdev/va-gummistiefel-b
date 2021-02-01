@@ -214,17 +214,21 @@ app.layout = html.Div(children=[
                 className="card",
             ),
             html.Div(
+                children=[dcc.Graph(id='rose_graph')],
+                className="card",
+            ),
+            html.Div(
                 children=[dcc.Graph(id='property_graph')],
+                className="card",
+            ),
+            html.Div(
+                children=[dcc.Graph(id='box_graph')],
                 className="card",
             ),
             html.Div(
                 children=[dcc.Graph(id='map_graph')],
                 className="card",
             ),
-            html.Div(
-                children=[dcc.Graph(id='rose_graph')],
-                className="card",
-            )
         ],
         className="wrapper",
     )
@@ -237,9 +241,10 @@ app.layout = html.Div(children=[
     [
         # Output(component_id='stats_table', component_property='data'),
         Output(component_id='events_graph', component_property='figure'),
-        Output(component_id='property_graph', component_property='figure'),
-        Output(component_id='map_graph', component_property='figure'),
         Output(component_id='rose_graph', component_property='figure'),
+        Output(component_id='property_graph', component_property='figure'),
+        Output(component_id='box_graph', component_property='figure'),
+        Output(component_id='map_graph', component_property='figure'),
     ],
     [
         Input(component_id='bin_size_slider', component_property='value'),
@@ -285,6 +290,7 @@ def update_graphs(bin_size,
 
     u_events_graph = utils.get_stacked_histogram(filtered_df, bin_size=bin_size)
     u_events_graph.update_layout(title=f"Number of {prec_type.lower()} precipitation events (bin size: {bin_size})")
+    u_rose_graph = utils.get_rose_chart(filtered_df)
     filtered_stats_table = utils.get_stats(filtered_df, filtered_ts_df).to_dict(orient="records")
 
     if prec_property in ["maxPrec", "meanPre"]:
@@ -294,9 +300,10 @@ def update_graphs(bin_size,
         u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property,
                                                hist_func="avg")
     u_property_graph.update_layout(title=f"Average {prec_property} of {prec_type.lower()} precipitation events")
+    u_box_graph = utils.get_boxplots(filtered_df, filtered_ts_df)
+    u_box_graph.update_layout(title="Distribution of precipitation events")
     u_map_graph = utils.get_extreme_events_on_map(filtered_ts_df)  # specify col or keep default?
-    u_rose_graph = utils.get_rose_chart(filtered_df)
-    return u_events_graph, u_property_graph, u_map_graph, u_rose_graph
+    return u_events_graph, u_rose_graph, u_property_graph, u_box_graph, u_map_graph
     # return filtered_stats_table, u_events_graph, u_property_graph, u_map_graph
 
 

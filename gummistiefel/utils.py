@@ -66,7 +66,7 @@ def get_stacked_histogram(df, bin_size=1):
             end=max(list(heavy_precipitation_events["year"])),
             size=bin_size),
         marker=dict(color="red")
-        ))
+    ))
 
     if len(normal_precipitation_events) > 0:
         # The two histograms are drawn on top of another
@@ -295,16 +295,16 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None, scaling_
 def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
     df["text"] = df["id"].astype(str) + " si(" + df["si"].astype(str) + "), length(" + df["length"].astype(str) \
                  + "), area(" + df["area"].astype(str) + ")"
-    max_si_event_id, max_si = get_max_id(df, "si", return_value=True)
+    max_si_event_id, max_si = get_max_id(df, "si_ev", return_value=True)
     max_length_event_id, max_length = get_max_id(df, "length", return_value=True)
     max_area_event_id, max_area = get_max_id(df, "area", return_value=True)
     fig = make_subplots(
         rows=1, cols=3,
         specs=[[{"type": "scattergeo"}, {"type": "scattergeo"}, {"type": "scattergeo"}]],
         subplot_titles=[
-            "Event with max si of {:4.3f}".format(max_si),
+            "Event with max si of {:.3f}".format(max_si),
             "Event with max length of {}".format(max_length),
-            "Event with max area of {:4.3f}".format(max_area)
+            "Event with max area of {:.3f}".format(max_area)
         ],
     )
     event_ids = [max_si_event_id, max_length_event_id, max_area_event_id]
@@ -329,7 +329,7 @@ def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
                     color=filtered_df[column_name],
                     coloraxis="coloraxis"
                 ),
-                geo=f"geo{i+1}"
+                geo=f"geo{i + 1}"
             ),
             row=1, col=i + 1
         )
@@ -355,6 +355,31 @@ def get_boxplot(df, column_name):
     fig = go.Figure()
     fig.add_trace(
         go.Box(y=list(df[column_name]), name=column_name)
+    )
+    return fig
+
+
+def get_boxplots(df, ts_df):
+    df["text"] = df["id"].astype(str) + " si(" + df["si"].astype(str) + "), length(" + df["length"].astype(str) \
+                 + "), area(" + df["area"].astype(str) + ")"
+
+    ts_df["text"] = ts_df["id"].astype(str) + " si(" + ts_df["si"].astype(str) \
+                    + "), length(" + ts_df["length"].astype(str) + "), area(" + ts_df["area"].astype(str) + ")"
+    fig = make_subplots(rows=1, cols=5)
+    fig.add_trace(
+        go.Box(y=list(df["si"]), name="si (event)", text=df["text"]), row=1, col=1
+    )
+    fig.add_trace(
+        go.Box(y=list(ts_df["si"]), name="si (timeseries)", text=ts_df["text"]), row=1, col=2
+    )
+    fig.add_trace(
+        go.Box(y=list(df["length"]), name="length", text=df["text"]), row=1, col=3
+    )
+    fig.add_trace(
+        go.Box(y=list(df["area"]), name="area", text=df["text"]), row=1, col=4
+    )
+    fig.add_trace(
+        go.Box(y=list(ts_df["meanPre"]), name="meanPre", text=ts_df["text"]), row=1, col=5
     )
     return fig
 
