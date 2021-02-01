@@ -11,5 +11,10 @@ Visual Analytics WS 2020/2021 Humboldt-Universität zu Berlin
 
 ## Download data
 ```
-python /PATH/TO/va-gummistiefel-b/gummistiefel/download_script.py /PATH/TO/va-gummistiefel-b/data
+python /PATH/TO/va-gummistiefel-b/gummistiefel/simple_download_script.py /PATH/TO/va-gummistiefel-b/data
 ```
+## Launch the web app
+```
+python gummistiefel/app.py
+```
+Click the link to open the app in your browser.
