@@ -220,6 +220,10 @@ app.layout = html.Div(children=[
             html.Div(
                 children=[dcc.Graph(id='map_graph')],
                 className="card",
+            ),
+            html.Div(
+                children=[dcc.Graph(id='rose_graph')],
+                className="card",
             )
         ],
         className="wrapper",
@@ -235,6 +239,7 @@ app.layout = html.Div(children=[
         Output(component_id='events_graph', component_property='figure'),
         Output(component_id='property_graph', component_property='figure'),
         Output(component_id='map_graph', component_property='figure'),
+        Output(component_id='rose_graph', component_property='figure'),
     ],
     [
         Input(component_id='bin_size_slider', component_property='value'),
@@ -277,10 +282,9 @@ def update_graphs(bin_size,
     )
     filtered_df = filtered_df.loc[mask, :]
     filtered_ts_df = filtered_ts_df.loc[ts_mask, :]
-    filtered_df = filtered_df[filtered_df["si"] > 0.0] if heavy_precipitation_filter else filtered_df
-    filtered_ts_df = filtered_ts_df[filtered_ts_df["si_ev"] > 0.0] if heavy_precipitation_filter else filtered_ts_df
 
-    u_events_graph = utils.get_stacked_histogram(events_df, bin_size=bin_size)
+    u_events_graph = utils.get_stacked_histogram(filtered_df, bin_size=bin_size)
+    u_events_graph.update_layout(title=f"Number of {prec_type.lower()} precipitation events (bin size: {bin_size})")
     filtered_stats_table = utils.get_stats(filtered_df, filtered_ts_df).to_dict(orient="records")
 
     if prec_property in ["maxPrec", "meanPre"]:
@@ -289,13 +293,10 @@ def update_graphs(bin_size,
     else:
         u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property,
                                                hist_func="avg")
-    u_prec_property = "si_ev" if prec_property == "si" else prec_property
-    extreme_event_id = filtered_ts_df.iloc[filtered_ts_df[u_prec_property].argmax()]["id"]
-    u_map_graph = utils.get_event_on_map(filtered_ts_df, event_ids=[extreme_event_id])  # specify col or keep default?
-    u_map_graph.update_layout(
-        title=f'Event with max {prec_property} ({extreme_event_id})',
-    )
-    return u_events_graph, u_property_graph, u_map_graph
+    u_property_graph.update_layout(title=f"Average {prec_property} of {prec_type.lower()} precipitation events")
+    u_map_graph = utils.get_extreme_events_on_map(filtered_ts_df)  # specify col or keep default?
+    u_rose_graph = utils.get_rose_chart(filtered_df)
+    return u_events_graph, u_property_graph, u_map_graph, u_rose_graph
     # return filtered_stats_table, u_events_graph, u_property_graph, u_map_graph
 
 

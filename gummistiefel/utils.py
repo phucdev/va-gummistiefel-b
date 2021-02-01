@@ -48,19 +48,25 @@ def get_stacked_histogram(df, bin_size=1):
             x=list(normal_precipitation_events["year"]),
             histfunc="count",
             autobinx=False,
+            opacity=0.75,
             xbins=dict(
                 start=min(list(normal_precipitation_events["year"])),
                 end=max(list(normal_precipitation_events["year"])),
-                size=bin_size)))
+                size=bin_size),
+            marker=dict(color="blue")
+        )),
     fig.add_trace(go.Histogram(
         name="Heavy precipitation events",
         x=list(heavy_precipitation_events["year"]),
         histfunc="count",
         autobinx=False,
+        opacity=0.75,
         xbins=dict(
             start=min(list(heavy_precipitation_events["year"])),
             end=max(list(heavy_precipitation_events["year"])),
-            size=bin_size)))
+            size=bin_size),
+        marker=dict(color="red")
+        ))
 
     if len(normal_precipitation_events) > 0:
         # The two histograms are drawn on top of another
@@ -146,7 +152,7 @@ def get_histogram(df, column_name=None, heavy_precipitation_filter=False, bin_si
     return fig
 
 
-def get_rose_chart(df, max_radius=40000):
+def get_rose_chart(df, max_radius=None):
     heavy_precipitation_events = df[df["si"] > 0.0]
     normal_precipitation_events = df[df["si"] == 0.0]
 
@@ -162,31 +168,36 @@ def get_rose_chart(df, max_radius=40000):
 
     normal_data["month_str"] = months
     reversed_num_of_events_normal = normal_data.sort_values(["month"], ascending=False)
+
     fig = go.Figure()
-    fig.add_trace(go.Barpolar(
-        r=list(reversed_num_of_events_normal["events"]),
-        theta=reversed_num_of_events_normal["month_str"],
-        name="Number of normal precipitation events",
-        marker_color="blue",
-        marker_line_color="black",
-        hoverinfo=["all"],
-        opacity=0.7
-    ))
+    if len(normal_precipitation_events) > 0:
+        fig.add_trace(go.Barpolar(
+            r=list(reversed_num_of_events_normal["events"]),
+            theta=reversed_num_of_events_normal["month_str"],
+            name="Number of normal precipitation events",
+            marker=dict(
+                color="blue",
+                line_color="black"
+            ),
+            hoverinfo=["all"],
+            opacity=0.75
+        ))
 
     fig.add_trace(go.Barpolar(
         r=list(reversed_num_of_events_heavy["events"]),
         theta=reversed_num_of_events_heavy["month_str"],
         name="Number of heavy precipitation events",
-        marker_color="red",
-        marker_line_color="black",
+        marker=dict(
+            color="red",
+            line_color="black"
+        ),
         hoverinfo=["all"],
-        opacity=0.7
+        opacity=0.75
     ))
-
+    if not (max_radius and type(max_radius) == int):
+        max_radius = pd.Series(reversed_num_of_events_heavy["events"] + reversed_num_of_events_normal["events"])
     fig.update_layout(
         title="Number of precipitation events per month",
-        width=900,
-        height=900,
         polar_angularaxis_rotation=90,
         polar=dict(
             bgcolor="rgb(223,223,223)",
