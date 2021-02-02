@@ -7,6 +7,7 @@ from dash.dependencies import Input, Output
 import pandas as pd
 from datetime import datetime
 import utils
+import math
 
 # Load the dataset
 events_df = pd.read_json('data/regen_event_list_ts.json', lines=True)
@@ -19,11 +20,11 @@ stats_table = utils.get_stats(events_df, ts_events_df)
 
 # Get options and range
 si_min = 0  # float(min(events_df["si"].min(), ts_events_df["si"].min()))
-si_max = float(max(events_df["si"].max(), ts_events_df["si"].max()))
+si_max = math.ceil((max(events_df["si"].max(), ts_events_df["si"].max())))
 length_min = int(ts_events_df["length"].min())
 length_max = int(ts_events_df["length"].max())
 area_min = 0  # float(ts_events_df["area"].min())
-area_max = float(ts_events_df["area"].max())
+area_max = math.ceil(ts_events_df["area"].max())
 min_date = events_df.datetime.min().date()
 max_date = events_df.datetime.max().date()
 

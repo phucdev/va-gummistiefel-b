@@ -5,6 +5,7 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 import scipy.stats
+import math
 
 months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
           "November", "December"]
@@ -13,6 +14,13 @@ lat_min = 34.9099998474
 lat_max = 56.4199981689
 long_min = 2.6099998951
 long_max = 20.9799995422
+
+
+def get_ceil_with_digits(num, digits=0):
+    assert digits >= 0, "The number of decimals to use when rounding the number. Has to be >= 0."
+    float_num = float(num)
+    float_num = math.ceil(float_num*(10**digits))/(10**digits)
+    return float(float_num)
 
 
 def mean_confidence_interval(data, confidence=0.95):
@@ -360,26 +368,28 @@ def get_boxplot(df, column_name):
 
 
 def get_boxplots(df, ts_df):
-    df["text"] = df["id"].astype(str) + " si(" + df["si"].astype(str) + "), length(" + df["length"].astype(str) \
+    df_copy = df.copy()
+    ts_df_copy = ts_df.copy()
+    df_copy["text"] = df["id"].astype(str) + " si(" + df["si"].astype(str) + "), length(" + df["length"].astype(str) \
                  + "), area(" + df["area"].astype(str) + ")"
 
-    ts_df["text"] = ts_df["id"].astype(str) + " si(" + ts_df["si"].astype(str) \
+    ts_df_copy["text"] = ts_df["id"].astype(str) + " si(" + ts_df["si"].astype(str) \
                     + "), length(" + ts_df["length"].astype(str) + "), area(" + ts_df["area"].astype(str) + ")"
     fig = make_subplots(rows=1, cols=5)
     fig.add_trace(
-        go.Box(y=list(df["si"]), name="si (event)", text=df["text"]), row=1, col=1
+        go.Box(y=list(df_copy["si"]), name="si (event)", text=df_copy["text"]), row=1, col=1
     )
     fig.add_trace(
-        go.Box(y=list(ts_df["si"]), name="si (timeseries)", text=ts_df["text"]), row=1, col=2
+        go.Box(y=list(ts_df_copy["si"]), name="si (timeseries)", text=ts_df_copy["text"]), row=1, col=2
     )
     fig.add_trace(
-        go.Box(y=list(df["length"]), name="length", text=df["text"]), row=1, col=3
+        go.Box(y=list(df_copy["length"]), name="length", text=df_copy["text"]), row=1, col=3
     )
     fig.add_trace(
-        go.Box(y=list(df["area"]), name="area", text=df["text"]), row=1, col=4
+        go.Box(y=list(df_copy["area"]), name="area", text=df_copy["text"]), row=1, col=4
     )
     fig.add_trace(
-        go.Box(y=list(ts_df["meanPre"]), name="meanPre", text=ts_df["text"]), row=1, col=5
+        go.Box(y=list(ts_df_copy["meanPre"]), name="meanPre", text=ts_df_copy["text"]), row=1, col=5
     )
     return fig
 
