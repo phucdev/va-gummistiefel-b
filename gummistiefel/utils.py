@@ -135,10 +135,19 @@ def get_rose_chart_data(df):
     normal_precipitation_events = df[df["si"] == 0.0]
     heavy_data = pd.DataFrame(
         heavy_precipitation_events.groupby(['month']).id.count().reset_index(name='events')
-    ).sort_values(['month'], ascending=True)
+    ).set_index("month")
     normal_data = pd.DataFrame(
         normal_precipitation_events.groupby(['month']).id.count().reset_index(name='events')
-    ).sort_values(['month'], ascending=True)
+    ).set_index("month")
+    for i in range(len(months)):
+        month = i+1
+        if month not in heavy_data.index:
+            heavy_data.loc[month] = {"events": 0}
+        if month not in normal_data.index:
+            normal_data.loc[month] = {"events": 0}
+    heavy_data.sort_values(["month"], ascending=True, inplace=True)
+    normal_data.sort_values(["month"], ascending=True, inplace=True)
+
     heavy_data["month_str"] = months
     reversed_num_of_events_heavy = heavy_data.sort_values(["month"], ascending=False)
     normal_data["month_str"] = months
