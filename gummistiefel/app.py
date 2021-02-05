@@ -66,13 +66,9 @@ app.layout = html.Div(children=[
                         min=1,
                         max=10,
                         step=1,
-                        marks={
-                            1: '1',
-                            5: '5',
-                            10: '10'
-                        },
+                        marks=dict([(i, str(i)) for i in range(1, 11, 1)]),
                         value=1,
-                        tooltip={"always_visible": True, "placement": "right"}
+                        tooltip={"always_visible": True, "placement": "bottom"}
                     ),
                 ],
                 className="slider",
@@ -95,7 +91,7 @@ app.layout = html.Div(children=[
                             si_max: f'{si_max}'
                         },
                         value=[si_min, si_max],
-                        tooltip={"always_visible": True, "placement": "right"}
+                        tooltip={"always_visible": True, "placement": "bottom"}
                     ),
                 ],
                 className="slider",
@@ -118,7 +114,7 @@ app.layout = html.Div(children=[
                             length_max: f'{length_max}'
                         },
                         value=[length_min, length_max],
-                        tooltip={"always_visible": True, "placement": "right"}
+                        tooltip={"always_visible": True, "placement": "bottom"}
                     ),
                 ],
                 className="slider",
@@ -141,7 +137,7 @@ app.layout = html.Div(children=[
                             area_max: f'{area_max}'
                         },
                         value=[area_min, area_max],
-                        tooltip={"always_visible": True, "placement": "right"}
+                        tooltip={"always_visible": True, "placement": "bottom"}
                     ),
                 ],
                 className="slider",
@@ -181,13 +177,32 @@ app.layout = html.Div(children=[
                     ),
                 ]
             ),
+        ],
+        className="menu",
+    ),
+    html.Div(
+        children=[
             html.Div(
                 children=[
                     html.Div(
-                        children="Date Range", className="menu-title"
+                        children="Date Range A", className="menu-title"
                     ),
                     dcc.DatePickerRange(
-                        id="date_range",
+                        id="date_range_a",
+                        min_date_allowed=events_df.datetime.min().date(),
+                        max_date_allowed=events_df.datetime.max().date(),
+                        start_date=events_df.datetime.min().date(),
+                        end_date=events_df.datetime.max().date(),
+                    ),
+                ]
+            ),
+            html.Div(
+                children=[
+                    html.Div(
+                        children="Date Range B", className="menu-title"
+                    ),
+                    dcc.DatePickerRange(
+                        id="date_range_b",
                         min_date_allowed=events_df.datetime.min().date(),
                         max_date_allowed=events_df.datetime.max().date(),
                         start_date=events_df.datetime.min().date(),
@@ -196,7 +211,7 @@ app.layout = html.Div(children=[
                 ]
             ),
         ],
-        className="menu",
+        className="date_menu",
     ),
     html.Div(
         children=[
@@ -215,11 +230,11 @@ app.layout = html.Div(children=[
                 className="card",
             ),
             html.Div(
-                children=[dcc.Graph(id='rose_graph')],
+                children=[dcc.Graph(id='property_graph')],
                 className="card",
             ),
             html.Div(
-                children=[dcc.Graph(id='property_graph')],
+                children=[dcc.Graph(id='rose_graph_a'), dcc.Graph(id='rose_graph_b')],
                 className="card",
             ),
             html.Div(
@@ -242,7 +257,8 @@ app.layout = html.Div(children=[
     [
         # Output(component_id='stats_table', component_property='data'),
         Output(component_id='events_graph', component_property='figure'),
-        Output(component_id='rose_graph', component_property='figure'),
+        Output(component_id='rose_graph_a', component_property='figure'),
+        Output(component_id='rose_graph_b', component_property='figure'),
         Output(component_id='property_graph', component_property='figure'),
         Output(component_id='box_graph', component_property='figure'),
         Output(component_id='map_graph', component_property='figure'),
@@ -254,22 +270,26 @@ app.layout = html.Div(children=[
         Input(component_id='area_range_slider', component_property='value'),
         Input(component_id='property_list', component_property='value'),
         Input(component_id='type_list', component_property='value'),
-        Input(component_id='date_range', component_property='start_date'),
-        Input(component_id='date_range', component_property='end_date')
+        Input(component_id='date_range_a', component_property='start_date'),
+        Input(component_id='date_range_a', component_property='end_date'),
+        Input(component_id='date_range_b', component_property='start_date'),
+        Input(component_id='date_range_b', component_property='end_date')
     ]
 )
 def update_graphs(bin_size,
                   si_range, length_range, area_range,
-                  prec_property, prec_type, start_date, end_date):
+                  prec_property, prec_type,
+                  start_date_a, end_date_a, start_date_b, end_date_b):
     heavy_precipitation_filter = True if prec_type == "Heavy" else False
     filtered_df = events_df[events_df["si"] > 0.0] if heavy_precipitation_filter else events_df
     filtered_ts_df = ts_events_df[ts_events_df["si_ev"] > 0.0] if heavy_precipitation_filter else ts_events_df
-    start_date_dt = datetime.combine(datetime.strptime(start_date, '%Y-%m-%d'), datetime.min.time())
-    end_date_dt = datetime.combine(datetime.strptime(end_date, '%Y-%m-%d'), datetime.max.time())
+    start_date_dt_a = datetime.combine(datetime.strptime(start_date_a, '%Y-%m-%d'), datetime.min.time())
+    end_date_dt_a = datetime.combine(datetime.strptime(end_date_a, '%Y-%m-%d'), datetime.max.time())
+    start_date_dt_b = datetime.combine(datetime.strptime(start_date_b, '%Y-%m-%d'), datetime.min.time())
+    end_date_dt_b = datetime.combine(datetime.strptime(end_date_b, '%Y-%m-%d'), datetime.max.time())
+    # TODO move filtration into separate function
     mask = (
-            (filtered_df["datetime"] >= start_date_dt)
-            & (filtered_df["datetime"] <= end_date_dt)
-            & (filtered_df["si"] >= si_range[0])
+            (filtered_df["si"] >= si_range[0])
             & (filtered_df["si"] <= si_range[1])
             & (filtered_df["length"] >= length_range[0])
             & (filtered_df["length"] <= length_range[1])
@@ -277,9 +297,7 @@ def update_graphs(bin_size,
             & (filtered_df["area"] <= area_range[1])
     )
     ts_mask = (
-            (filtered_ts_df["datetime"] >= start_date_dt)
-            & (filtered_ts_df["datetime"] <= end_date_dt)
-            & (filtered_ts_df["si_ev"] >= si_range[0])
+            (filtered_ts_df["si_ev"] >= si_range[0])
             & (filtered_ts_df["si_ev"] <= si_range[1])
             & (filtered_ts_df["length"] >= length_range[0])
             & (filtered_ts_df["length"] <= length_range[1])
@@ -288,23 +306,51 @@ def update_graphs(bin_size,
     )
     filtered_df = filtered_df.loc[mask, :]
     filtered_ts_df = filtered_ts_df.loc[ts_mask, :]
+    mask_a = (
+            (filtered_df["datetime"] >= start_date_dt_a)
+            & (filtered_df["datetime"] <= end_date_dt_a)
+    )
+    ts_mask_a = (
+            (filtered_ts_df["datetime"] >= start_date_dt_a)
+            & (filtered_ts_df["datetime"] <= end_date_dt_a)
+    )
+    mask_b = (
+            (filtered_df["datetime"] >= start_date_dt_b)
+            & (filtered_df["datetime"] <= end_date_dt_b)
+    )
+    ts_mask_b = (
+            (filtered_ts_df["datetime"] >= start_date_dt_b)
+            & (filtered_ts_df["datetime"] <= end_date_dt_b)
+    )
+    filtered_df_a = filtered_df.loc[mask_a, :]
+    filtered_ts_df_a = filtered_ts_df.loc[ts_mask_a, :]
+    filtered_df_b = filtered_df.loc[mask_b, :]
+    filtered_ts_df_b = filtered_ts_df.loc[ts_mask_b, :]
 
+    # Overview
     u_events_graph = utils.get_stacked_histogram(filtered_df, bin_size=bin_size)
     u_events_graph.update_layout(title=f"Number of {prec_type.lower()} precipitation events (bin size: {bin_size})")
-    u_rose_graph = utils.get_rose_chart(filtered_df)
-    filtered_stats_table = utils.get_stats(filtered_df, filtered_ts_df).to_dict(orient="records")
 
     if prec_property in ["maxPrec", "meanPre"]:
-        u_property_graph = utils.get_histogram(filtered_ts_df, bin_size=bin_size, column_name=prec_property,
-                                               hist_func="avg")
+        u_property_graph = utils.get_histogram(filtered_ts_df, bin_size=bin_size, column_name=prec_property)
     else:
-        u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property,
-                                               hist_func="avg")
+        u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property)
     u_property_graph.update_layout(title=f"Average {prec_property} of {prec_type.lower()} precipitation events")
-    u_box_graph = utils.get_boxplots(filtered_df, filtered_ts_df)
+
+    # Comparison
+    u_rose_graph_a = utils.get_rose_chart(filtered_df_a)
+    u_rose_graph_a.update_layout(
+        title="Number of precipitation events per month (Date range A)"
+    )
+    u_rose_graph_b = utils.get_rose_chart(filtered_df_b)
+    u_rose_graph_b.update_layout(
+        title="Number of precipitation events per month (Date range B)"
+    )
+    filtered_stats_table = utils.get_stats(filtered_df_a, filtered_ts_df_a).to_dict(orient="records")
+    u_box_graph = utils.get_boxplots(filtered_df_a, filtered_ts_df_a)
     u_box_graph.update_layout(title="Distribution of precipitation events")
-    u_map_graph = utils.get_extreme_events_on_map(filtered_ts_df)  # specify col or keep default?
-    return u_events_graph, u_rose_graph, u_property_graph, u_box_graph, u_map_graph
+    u_map_graph = utils.get_extreme_events_on_map(filtered_ts_df_a)  # specify col or keep default?
+    return u_events_graph, u_rose_graph_a, u_rose_graph_b, u_property_graph, u_box_graph, u_map_graph
     # return filtered_stats_table, u_events_graph, u_property_graph, u_map_graph
 
 

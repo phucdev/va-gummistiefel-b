@@ -59,7 +59,7 @@ def get_stacked_histogram(df, bin_size=1):
             opacity=0.75,
             xbins=dict(
                 start=min(list(normal_precipitation_events["year"])),
-                end=max(list(normal_precipitation_events["year"])),
+                end=max(list(normal_precipitation_events["year"]))+1,
                 size=bin_size),
             marker=dict(color="blue")
         )),
@@ -71,7 +71,7 @@ def get_stacked_histogram(df, bin_size=1):
         opacity=0.75,
         xbins=dict(
             start=min(list(heavy_precipitation_events["year"])),
-            end=max(list(heavy_precipitation_events["year"])),
+            end=max(list(heavy_precipitation_events["year"]))+1,
             size=bin_size),
         marker=dict(color="red")
     ))
@@ -82,106 +82,76 @@ def get_stacked_histogram(df, bin_size=1):
     return fig
 
 
-def get_histogram(df, column_name=None, heavy_precipitation_filter=False, bin_size=1, hist_func="count"):
-    assert hist_func in ["count", "sum", "avg", "min", "max"], f"{hist_func} not a valid hist_func"
+def get_histogram(df, column_name="si", heavy_precipitation_filter=False, bin_size=1):
     if column_name:
         assert column_name in df, f"{column_name} not in df"
     filtered_df = df
     if heavy_precipitation_filter:
         filtered_df = filtered_df[filtered_df["si"] > 0.0]
-    fig = go.Figure()
-    if hist_func == "count":
-        fig.add_trace(go.Histogram(
-            name=hist_func,
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=[
+            f"Average {column_name}",
+            f"Max {column_name}"
+        ]
+    )
+    max_filtered_df = filtered_df.loc[filtered_df.groupby("year")["si"].idxmax()]
+    fig.add_trace(
+        go.Histogram(
+            name=f"avg {column_name}",
             x=list(filtered_df["year"]),
-            histfunc=hist_func,
+            y=list(filtered_df[column_name]),
+            histfunc="avg",
             autobinx=False,
+            opacity=0.75,
             xbins=dict(
                 start=min(list(filtered_df["year"])),
-                end=max(list(filtered_df["year"])),
-                size=bin_size)
-        ))
-    elif column_name:
-        if hist_func in ["avg", "min", "max"]:
-            fig.add_trace(go.Histogram(
-                name=f"avg {column_name}",
-                x=list(filtered_df["year"]),
-                y=list(filtered_df[column_name]),
-                histfunc="avg",
-                autobinx=False,
-                opacity=0.75,
-                xbins=dict(
-                    start=min(list(filtered_df["year"])),
-                    end=max(list(filtered_df["year"])),
-                    size=bin_size)
-            ))
-            if hist_func == "avg":
-                alt_hist_func = "max"
-            else:
-                alt_hist_func = hist_func
-            fig.add_trace(go.Histogram(
-                name=f"{alt_hist_func} {column_name}",
-                x=list(filtered_df["year"]),
-                y=list(filtered_df[column_name]),
-                histfunc=alt_hist_func,
-                autobinx=False,
-                opacity=0.75,
-                xbins=dict(
-                    start=min(list(filtered_df["year"])),
-                    end=max(list(filtered_df["year"])),
-                    size=bin_size),
-                yaxis="y2"
-            ))
-            fig.update_layout(
-                yaxis=dict(
-                    title=f"avg {column_name}",
-                    titlefont=dict(
-                        color="#1f77b4"
-                    ),
-                    tickfont=dict(
-                        color="#1f77b4"
-                    )
-                ),
-                yaxis2=dict(
-                    title=f"{alt_hist_func} {column_name}",
-                    titlefont=dict(
-                        color="#ff7f0e"
-                    ),
-                    tickfont=dict(
-                        color="#ff7f0e"
-                    ),
-                    anchor="x",
-                    overlaying="y",
-                    side="right",
-                )
-            )
-
+                end=max(list(filtered_df["year"]))+1,
+                size=bin_size),
+        ),
+        row=1, col=1
+    )
+    fig.add_trace(
+        go.Histogram(
+            name=f"max {column_name}",
+            x=list(max_filtered_df["year"]),
+            y=list(max_filtered_df[column_name]),
+            histfunc="max",
+            autobinx=False,
+            opacity=0.75,
+            xbins=dict(
+                start=min(list(max_filtered_df["year"])),
+                end=max(list(max_filtered_df["year"]))+1,
+                size=bin_size),
+        ),
+        row=1, col=2
+    )
     # TODO add trend line?
     return fig
 
 
-def get_rose_chart(df, max_radius=None):
+def get_rose_chart_data(df):
     heavy_precipitation_events = df[df["si"] > 0.0]
     normal_precipitation_events = df[df["si"] == 0.0]
-
     heavy_data = pd.DataFrame(
         heavy_precipitation_events.groupby(['month']).id.count().reset_index(name='events')
     ).sort_values(['month'], ascending=True)
     normal_data = pd.DataFrame(
         normal_precipitation_events.groupby(['month']).id.count().reset_index(name='events')
     ).sort_values(['month'], ascending=True)
-
     heavy_data["month_str"] = months
     reversed_num_of_events_heavy = heavy_data.sort_values(["month"], ascending=False)
-
     normal_data["month_str"] = months
     reversed_num_of_events_normal = normal_data.sort_values(["month"], ascending=False)
+    return reversed_num_of_events_normal, reversed_num_of_events_heavy
 
-    fig = go.Figure()
-    if len(normal_precipitation_events) > 0:
-        fig.add_trace(go.Barpolar(
-            r=list(reversed_num_of_events_normal["events"]),
-            theta=reversed_num_of_events_normal["month_str"],
+
+def get_bar_polar(num_of_events_normal, num_of_events_heavy):
+    normal_barpolar = None
+    if len(num_of_events_normal) > 0:
+        normal_barpolar = go.Barpolar(
+            r=list(num_of_events_normal["events"]),
+            theta=num_of_events_normal["month_str"],
             name="Number of normal precipitation events",
             marker=dict(
                 color="blue",
@@ -189,11 +159,10 @@ def get_rose_chart(df, max_radius=None):
             ),
             hoverinfo=["all"],
             opacity=0.75
-        ))
-
-    fig.add_trace(go.Barpolar(
-        r=list(reversed_num_of_events_heavy["events"]),
-        theta=reversed_num_of_events_heavy["month_str"],
+        )
+    heavy_barpolar = go.Barpolar(
+        r=list(num_of_events_heavy["events"]),
+        theta=num_of_events_heavy["month_str"],
         name="Number of heavy precipitation events",
         marker=dict(
             color="red",
@@ -201,18 +170,31 @@ def get_rose_chart(df, max_radius=None):
         ),
         hoverinfo=["all"],
         opacity=0.75
-    ))
+    )
+    return normal_barpolar, heavy_barpolar
+
+
+def get_rose_chart(df, max_radius=None):
+    num_of_events_normal, num_of_events_heavy = get_rose_chart_data(df)
+    normal_barpolar, heavy_barpolar = get_bar_polar(num_of_events_normal, num_of_events_heavy)
+
+    fig = go.Figure()
+    if normal_barpolar is not None:
+        fig.add_trace(normal_barpolar)
+    fig.add_trace(heavy_barpolar)
+
     if not (max_radius and type(max_radius) == int):
-        max_radius = pd.Series(reversed_num_of_events_heavy["events"] + reversed_num_of_events_normal["events"])
+        max_radius = max(num_of_events_heavy["events"])
+        if num_of_events_normal is not None and len(num_of_events_normal) > 0:
+            max_radius += max(num_of_events_normal["events"])
     fig.update_layout(
-        title="Number of precipitation events per month",
-        polar_angularaxis_rotation=90,
         polar=dict(
             bgcolor="rgb(223,223,223)",
             angularaxis=dict(
                 linewidth=3,
                 showline=True,
-                linecolor='black'
+                linecolor='black',
+                rotation=90
             ),
             radialaxis=dict(
                 showline=True,
