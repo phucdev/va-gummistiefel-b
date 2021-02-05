@@ -174,6 +174,16 @@ def get_bar_polar(num_of_events_normal, num_of_events_heavy):
     return normal_barpolar, heavy_barpolar
 
 
+def get_max_radius(df):
+    num_of_events_normal, num_of_events_heavy = get_rose_chart_data(df)
+    max_radius = max(num_of_events_heavy["events"])
+    if num_of_events_normal is not None and len(num_of_events_normal) > 0:
+        max_radius_n = max(num_of_events_normal["events"])
+        if not math.isnan(max_radius_n):
+            max_radius += max_radius_n
+    return max_radius
+
+
 def get_rose_chart(df, max_radius=None):
     num_of_events_normal, num_of_events_heavy = get_rose_chart_data(df)
     normal_barpolar, heavy_barpolar = get_bar_polar(num_of_events_normal, num_of_events_heavy)
@@ -184,9 +194,7 @@ def get_rose_chart(df, max_radius=None):
     fig.add_trace(heavy_barpolar)
 
     if not (max_radius and type(max_radius) == int):
-        max_radius = max(num_of_events_heavy["events"])
-        if num_of_events_normal is not None and len(num_of_events_normal) > 0:
-            max_radius += max(num_of_events_normal["events"])
+        max_radius = get_max_radius(df)
     fig.update_layout(
         polar=dict(
             bgcolor="rgb(223,223,223)",

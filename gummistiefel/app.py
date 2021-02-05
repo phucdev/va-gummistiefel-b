@@ -238,11 +238,11 @@ app.layout = html.Div(children=[
                 className="card",
             ),
             html.Div(
-                children=[dcc.Graph(id='box_graph')],
+                children=[dcc.Graph(id='box_graph_a'), dcc.Graph(id='box_graph_b')],
                 className="card",
             ),
             html.Div(
-                children=[dcc.Graph(id='map_graph')],
+                children=[dcc.Graph(id='map_graph_a'), dcc.Graph(id='map_graph_b')],
                 className="card",
             ),
         ],
@@ -257,11 +257,13 @@ app.layout = html.Div(children=[
     [
         # Output(component_id='stats_table', component_property='data'),
         Output(component_id='events_graph', component_property='figure'),
+        Output(component_id='property_graph', component_property='figure'),
         Output(component_id='rose_graph_a', component_property='figure'),
         Output(component_id='rose_graph_b', component_property='figure'),
-        Output(component_id='property_graph', component_property='figure'),
-        Output(component_id='box_graph', component_property='figure'),
-        Output(component_id='map_graph', component_property='figure'),
+        Output(component_id='box_graph_a', component_property='figure'),
+        Output(component_id='box_graph_b', component_property='figure'),
+        Output(component_id='map_graph_a', component_property='figure'),
+        Output(component_id='map_graph_b', component_property='figure'),
     ],
     [
         Input(component_id='bin_size_slider', component_property='value'),
@@ -338,19 +340,27 @@ def update_graphs(bin_size,
     u_property_graph.update_layout(title=f"Average {prec_property} of {prec_type.lower()} precipitation events")
 
     # Comparison
-    u_rose_graph_a = utils.get_rose_chart(filtered_df_a)
+    max_radius = utils.get_max_radius(filtered_df_a)
+    max_radius = max(max_radius, utils.get_max_radius(filtered_df_b))
+    u_rose_graph_a = utils.get_rose_chart(filtered_df_a, max_radius=max_radius)
     u_rose_graph_a.update_layout(
         title="Number of precipitation events per month (Date range A)"
     )
-    u_rose_graph_b = utils.get_rose_chart(filtered_df_b)
+    u_rose_graph_b = utils.get_rose_chart(filtered_df_b, max_radius=max_radius)
     u_rose_graph_b.update_layout(
         title="Number of precipitation events per month (Date range B)"
     )
     filtered_stats_table = utils.get_stats(filtered_df_a, filtered_ts_df_a).to_dict(orient="records")
-    u_box_graph = utils.get_boxplots(filtered_df_a, filtered_ts_df_a)
-    u_box_graph.update_layout(title="Distribution of precipitation events")
-    u_map_graph = utils.get_extreme_events_on_map(filtered_ts_df_a)  # specify col or keep default?
-    return u_events_graph, u_rose_graph_a, u_rose_graph_b, u_property_graph, u_box_graph, u_map_graph
+    u_box_graph_a = utils.get_boxplots(filtered_df_a, filtered_ts_df_a)
+    u_box_graph_a.update_layout(title="Distribution of precipitation events (Date range A)")
+    u_box_graph_b = utils.get_boxplots(filtered_df_b, filtered_ts_df_b)
+    u_box_graph_b.update_layout(title="Distribution of precipitation events (Date range B)")
+    u_map_graph_a = utils.get_extreme_events_on_map(filtered_ts_df_a)  # specify col or keep default?
+    u_map_graph_a.update_layout(title="Extreme precipitation events (Date range A)")
+    u_map_graph_b = utils.get_extreme_events_on_map(filtered_ts_df_b)  # specify col or keep default?
+    u_map_graph_b.update_layout(title="Extreme precipitation events (Date range B)")
+    return u_events_graph, u_property_graph, u_rose_graph_a, u_rose_graph_b, \
+           u_box_graph_a, u_box_graph_b, u_map_graph_a, u_map_graph_b
     # return filtered_stats_table, u_events_graph, u_property_graph, u_map_graph
 
 
