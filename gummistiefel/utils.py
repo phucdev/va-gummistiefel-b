@@ -291,11 +291,12 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None, scaling_
 
 
 def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
-    df["text"] = df["id"].astype(str) + " si(" + df["si"].astype(str) + "), length(" + df["length"].astype(str) \
-                 + "), area(" + df["area"].astype(str) + ")"
-    max_si_event_id, max_si = get_max_id(df, "si_ev", return_value=True)
-    max_length_event_id, max_length = get_max_id(df, "length", return_value=True)
-    max_area_event_id, max_area = get_max_id(df, "area", return_value=True)
+    df_copy = df.copy()
+    df_copy["text"] = df_copy["id"].astype(str) + " si(" + df_copy["si"].astype(str) + "), length(" \
+                      + df_copy["length"].astype(str) + "), area(" + df_copy["area"].astype(str) + ")"
+    max_si_event_id, max_si = get_max_id(df_copy, "si_ev", return_value=True)
+    max_length_event_id, max_length = get_max_id(df_copy, "length", return_value=True)
+    max_area_event_id, max_area = get_max_id(df_copy, "area", return_value=True)
     fig = make_subplots(
         rows=1, cols=3,
         specs=[[{"type": "scattergeo"}, {"type": "scattergeo"}, {"type": "scattergeo"}]],
@@ -314,7 +315,7 @@ def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
     )
 
     for i, event_id in enumerate(event_ids):
-        filtered_df = df[df["id"].isin([event_id])]
+        filtered_df = df_copy[df_copy["id"].isin([event_id])]
         fig.add_trace(
             go.Scattergeo(
                 lon=filtered_df['lonMax'],
@@ -338,7 +339,7 @@ def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
             autocolorscale=False,
             colorscale='Blues_r',
             cmin=0,
-            cmax=df[column_name].max(),
+            cmax=df_copy[column_name].max(),
             colorbar_title=f"{column_name}"
         ),
         showlegend=False,

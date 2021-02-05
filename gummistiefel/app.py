@@ -1,6 +1,6 @@
 # Import libraries
 import dash
-import dash_table
+# import dash_table
 import dash_html_components as html
 import dash_core_components as dcc
 from dash.dependencies import Input, Output
@@ -50,7 +50,7 @@ app.layout = html.Div(children=[
             ),
             html.P(
                 children="Temporal analysis of heavy precipitation events"
-                " in Germany, Switzerland and Italy between 1979 and 2017",
+                         " in Germany, Switzerland and Italy between 1979 and 2017",
                 className="header-description",
             ),
         ],
@@ -251,13 +251,65 @@ app.layout = html.Div(children=[
 ])
 
 
-# Set up the callback function
+# Set up the callback functions
 # TODO maybe use State instead of Input and use Button to initiate update
 @app.callback(
     [
         # Output(component_id='stats_table', component_property='data'),
         Output(component_id='events_graph', component_property='figure'),
-        Output(component_id='property_graph', component_property='figure'),
+        Output(component_id='property_graph', component_property='figure')
+    ],
+    [
+        Input(component_id='bin_size_slider', component_property='value'),
+        Input(component_id='si_range_slider', component_property='value'),
+        Input(component_id='length_range_slider', component_property='value'),
+        Input(component_id='area_range_slider', component_property='value'),
+        Input(component_id='property_list', component_property='value'),
+        Input(component_id='type_list', component_property='value')
+    ]
+)
+def update_overview_graphs(bin_size,
+                           si_range, length_range, area_range,
+                           prec_property, prec_type):
+    heavy_precipitation_filter = True if prec_type == "Heavy" else False
+    filtered_df = events_df[events_df["si"] > 0.0] if heavy_precipitation_filter else events_df
+    filtered_ts_df = ts_events_df[ts_events_df["si_ev"] > 0.0] if heavy_precipitation_filter else ts_events_df
+    # TODO move filtration into separate function
+    mask = (
+            (filtered_df["si"] >= si_range[0])
+            & (filtered_df["si"] <= si_range[1])
+            & (filtered_df["length"] >= length_range[0])
+            & (filtered_df["length"] <= length_range[1])
+            & (filtered_df["area"] >= area_range[0])
+            & (filtered_df["area"] <= area_range[1])
+    )
+    ts_mask = (
+            (filtered_ts_df["si_ev"] >= si_range[0])
+            & (filtered_ts_df["si_ev"] <= si_range[1])
+            & (filtered_ts_df["length"] >= length_range[0])
+            & (filtered_ts_df["length"] <= length_range[1])
+            & (filtered_ts_df["area"] >= area_range[0])
+            & (filtered_ts_df["area"] <= area_range[1])
+    )
+    filtered_df = filtered_df.loc[mask, :]
+    filtered_ts_df = filtered_ts_df.loc[ts_mask, :]
+
+    # Overview
+    u_events_graph = utils.get_stacked_histogram(filtered_df, bin_size=bin_size)
+    u_events_graph.update_layout(title=f"Number of {prec_type.lower()} precipitation events (bin size: {bin_size})")
+
+    if prec_property in ["maxPrec", "meanPre"]:
+        u_property_graph = utils.get_histogram(filtered_ts_df, bin_size=bin_size, column_name=prec_property)
+    else:
+        u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property)
+    u_property_graph.update_layout(title=f"Average {prec_property} of {prec_type.lower()} precipitation events")
+
+    return u_events_graph, u_property_graph
+
+
+@app.callback(
+    [
+        # Output(component_id='stats_table', component_property='data'),
         Output(component_id='rose_graph_a', component_property='figure'),
         Output(component_id='rose_graph_b', component_property='figure'),
         Output(component_id='box_graph_a', component_property='figure'),
@@ -266,11 +318,9 @@ app.layout = html.Div(children=[
         Output(component_id='map_graph_b', component_property='figure'),
     ],
     [
-        Input(component_id='bin_size_slider', component_property='value'),
         Input(component_id='si_range_slider', component_property='value'),
         Input(component_id='length_range_slider', component_property='value'),
         Input(component_id='area_range_slider', component_property='value'),
-        Input(component_id='property_list', component_property='value'),
         Input(component_id='type_list', component_property='value'),
         Input(component_id='date_range_a', component_property='start_date'),
         Input(component_id='date_range_a', component_property='end_date'),
@@ -278,10 +328,8 @@ app.layout = html.Div(children=[
         Input(component_id='date_range_b', component_property='end_date')
     ]
 )
-def update_graphs(bin_size,
-                  si_range, length_range, area_range,
-                  prec_property, prec_type,
-                  start_date_a, end_date_a, start_date_b, end_date_b):
+def update_comparison_graphs(si_range, length_range, area_range, prec_type,
+                             start_date_a, end_date_a, start_date_b, end_date_b):
     heavy_precipitation_filter = True if prec_type == "Heavy" else False
     filtered_df = events_df[events_df["si"] > 0.0] if heavy_precipitation_filter else events_df
     filtered_ts_df = ts_events_df[ts_events_df["si_ev"] > 0.0] if heavy_precipitation_filter else ts_events_df
@@ -329,16 +377,6 @@ def update_graphs(bin_size,
     filtered_df_b = filtered_df.loc[mask_b, :]
     filtered_ts_df_b = filtered_ts_df.loc[ts_mask_b, :]
 
-    # Overview
-    u_events_graph = utils.get_stacked_histogram(filtered_df, bin_size=bin_size)
-    u_events_graph.update_layout(title=f"Number of {prec_type.lower()} precipitation events (bin size: {bin_size})")
-
-    if prec_property in ["maxPrec", "meanPre"]:
-        u_property_graph = utils.get_histogram(filtered_ts_df, bin_size=bin_size, column_name=prec_property)
-    else:
-        u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property)
-    u_property_graph.update_layout(title=f"Average {prec_property} of {prec_type.lower()} precipitation events")
-
     # Comparison
     max_radius = utils.get_max_radius(filtered_df_a)
     max_radius = max(max_radius, utils.get_max_radius(filtered_df_b))
@@ -350,7 +388,7 @@ def update_graphs(bin_size,
     u_rose_graph_b.update_layout(
         title="Number of precipitation events per month (Date range B)"
     )
-    filtered_stats_table = utils.get_stats(filtered_df_a, filtered_ts_df_a).to_dict(orient="records")
+    # filtered_stats_table = utils.get_stats(filtered_df_a, filtered_ts_df_a).to_dict(orient="records")
     u_box_graph_a = utils.get_boxplots(filtered_df_a, filtered_ts_df_a)
     u_box_graph_a.update_layout(title="Distribution of precipitation events (Date range A)")
     u_box_graph_b = utils.get_boxplots(filtered_df_b, filtered_ts_df_b)
@@ -359,9 +397,7 @@ def update_graphs(bin_size,
     u_map_graph_a.update_layout(title="Extreme precipitation events (Date range A)")
     u_map_graph_b = utils.get_extreme_events_on_map(filtered_ts_df_b)  # specify col or keep default?
     u_map_graph_b.update_layout(title="Extreme precipitation events (Date range B)")
-    return u_events_graph, u_property_graph, u_rose_graph_a, u_rose_graph_b, \
-           u_box_graph_a, u_box_graph_b, u_map_graph_a, u_map_graph_b
-    # return filtered_stats_table, u_events_graph, u_property_graph, u_map_graph
+    return u_rose_graph_a, u_rose_graph_b, u_box_graph_a, u_box_graph_b, u_map_graph_a, u_map_graph_b
 
 
 # Run local server
