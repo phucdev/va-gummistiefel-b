@@ -168,8 +168,8 @@ app.layout = html.Div(children=[
                     dcc.Dropdown(
                         id="type_list",
                         options=[
-                            {"label": prop, "value": prop}
-                            for prop in ["All", "Heavy"]
+                            {"label": "All", "value": "All"},
+                            {"label": "Heavy (si > 0.0)", "value": "Heavy"}
                         ],
                         value="Heavy",
                         clearable=False,
