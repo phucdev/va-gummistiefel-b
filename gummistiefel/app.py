@@ -242,7 +242,11 @@ app.layout = html.Div(children=[
                 className="card",
             ),
             html.Div(
-                children=[dcc.Graph(id='map_graph_a'), dcc.Graph(id='map_graph_b')],
+                children=[
+                    dcc.Graph(id='map_graph_a'),
+                    dcc.Graph(id='map_graph_b'),
+                    html.Div(children="*The size of the markers corresponds to the area of the event")
+                ],
                 className="card",
             ),
         ],
@@ -337,6 +341,11 @@ def update_comparison_graphs(si_range, length_range, area_range, prec_type,
     end_date_dt_a = datetime.combine(datetime.strptime(end_date_a, '%Y-%m-%d'), datetime.max.time())
     start_date_dt_b = datetime.combine(datetime.strptime(start_date_b, '%Y-%m-%d'), datetime.min.time())
     end_date_dt_b = datetime.combine(datetime.strptime(end_date_b, '%Y-%m-%d'), datetime.max.time())
+    formatted_start_data_a = start_date_dt_a.strftime("%m/%d/%Y")
+    formatted_start_data_b = start_date_dt_b.strftime("%m/%d/%Y")
+    formatted_end_data_a = end_date_dt_a.strftime("%m/%d/%Y")
+    formatted_end_data_b = end_date_dt_b.strftime("%m/%d/%Y")
+
     # TODO move filtration into separate function
     mask = (
             (filtered_df["si"] >= si_range[0])
@@ -382,21 +391,31 @@ def update_comparison_graphs(si_range, length_range, area_range, prec_type,
     max_radius = max(max_radius, utils.get_max_radius(filtered_df_b))
     u_rose_graph_a = utils.get_rose_chart(filtered_df_a, max_radius=max_radius)
     u_rose_graph_a.update_layout(
-        title="Number of precipitation events per month (Date range A)"
+        title=f"Number of precipitation events per month "
+              f"(Date range A: {formatted_start_data_a} - {formatted_end_data_a})"
     )
     u_rose_graph_b = utils.get_rose_chart(filtered_df_b, max_radius=max_radius)
     u_rose_graph_b.update_layout(
-        title="Number of precipitation events per month (Date range B)"
+        title=f"Number of precipitation events per month "
+              f"(Date range B: {formatted_start_data_b} - {formatted_end_data_b})"
     )
     # filtered_stats_table = utils.get_stats(filtered_df_a, filtered_ts_df_a).to_dict(orient="records")
     u_box_graph_a = utils.get_boxplots(filtered_df_a, filtered_ts_df_a)
-    u_box_graph_a.update_layout(title="Distribution of precipitation events (Date range A)")
+    u_box_graph_a.update_layout(
+        title=f"Distribution of precipitation events "
+              f"(Date range A: {formatted_start_data_a} - {formatted_end_data_a})")
     u_box_graph_b = utils.get_boxplots(filtered_df_b, filtered_ts_df_b)
-    u_box_graph_b.update_layout(title="Distribution of precipitation events (Date range B)")
+    u_box_graph_b.update_layout(
+        title=f"Distribution of precipitation events "
+              f"(Date range B: {formatted_start_data_b} - {formatted_end_data_b})")
     u_map_graph_a = utils.get_extreme_events_on_map(filtered_ts_df_a)  # specify col or keep default?
-    u_map_graph_a.update_layout(title="Extreme precipitation events (Date range A)")
+    u_map_graph_a.update_layout(
+        title=f"Extreme precipitation events "
+              f"(Date range A: {formatted_start_data_a} - {formatted_start_data_a})")
     u_map_graph_b = utils.get_extreme_events_on_map(filtered_ts_df_b)  # specify col or keep default?
-    u_map_graph_b.update_layout(title="Extreme precipitation events (Date range B)")
+    u_map_graph_b.update_layout(
+        title=f"Extreme precipitation events "
+              f"(Date range B: {formatted_start_data_b} - {formatted_end_data_b})")
     return u_rose_graph_a, u_rose_graph_b, u_box_graph_a, u_box_graph_b, u_map_graph_a, u_map_graph_b
 
 
