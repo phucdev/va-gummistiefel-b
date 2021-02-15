@@ -408,11 +408,12 @@ def update_comparison_graphs(si_range, length_range, area_range, prec_type,
     u_box_graph_b.update_layout(
         title=f"Distribution of precipitation events "
               f"(Date range B: {formatted_start_data_b} - {formatted_end_data_b})")
-    u_map_graph_a = utils.get_extreme_events_on_map(filtered_ts_df_a)  # specify col or keep default?
+    cmax = max(filtered_ts_df_a["si"].max(), filtered_ts_df_b["si"].max())
+    u_map_graph_a = utils.get_extreme_events_on_map(filtered_ts_df_a, cmax=cmax)  # specify col or keep default?
     u_map_graph_a.update_layout(
         title=f"Extreme precipitation events "
               f"(Date range A: {formatted_start_data_a} - {formatted_start_data_a})")
-    u_map_graph_b = utils.get_extreme_events_on_map(filtered_ts_df_b)  # specify col or keep default?
+    u_map_graph_b = utils.get_extreme_events_on_map(filtered_ts_df_b, cmax=cmax)  # specify col or keep default?
     u_map_graph_b.update_layout(
         title=f"Extreme precipitation events "
               f"(Date range B: {formatted_start_data_b} - {formatted_end_data_b})")

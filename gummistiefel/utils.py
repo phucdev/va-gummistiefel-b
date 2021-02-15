@@ -299,13 +299,16 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None, scaling_
     return fig
 
 
-def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
+def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5, cmax: float = None):
     df_copy = df.copy()
     df_copy["text"] = df_copy["id"].astype(str) + " si(" + df_copy["si"].astype(str) + "), length(" \
                       + df_copy["length"].astype(str) + "), area(" + df_copy["area"].astype(str) + ")"
     max_si_event_id, max_si = get_max_id(df_copy, "si_ev", return_value=True)
     max_length_event_id, max_length = get_max_id(df_copy, "length", return_value=True)
     max_area_event_id, max_area = get_max_id(df_copy, "area", return_value=True)
+
+    if cmax is None:
+        cmax = df_copy[column_name].max()
     fig = make_subplots(
         rows=1, cols=3,
         specs=[[{"type": "scattergeo"}, {"type": "scattergeo"}, {"type": "scattergeo"}]],
@@ -348,7 +351,7 @@ def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
             autocolorscale=False,
             colorscale='Viridis',
             cmin=0,
-            cmax=df_copy[column_name].max(),
+            cmax=cmax,
             colorbar_title=f"{column_name}"
         ),
         showlegend=False,
