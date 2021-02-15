@@ -116,7 +116,7 @@ def get_histogram(df, column_name="si", heavy_precipitation_filter=False, bin_si
             name=f"max {column_name}",
             x=list(max_filtered_df["year"]),
             y=list(max_filtered_df[column_name]),
-            histfunc="max",
+            histfunc="max",  # TODO check why this does not compute actual max val
             autobinx=False,
             opacity=0.75,
             xbins=dict(
@@ -279,7 +279,7 @@ def get_event_on_map(df, column_name="si", event_ids: List[int] = None, scaling_
             opacity=0.8,
             reversescale=True,
             autocolorscale=False,
-            colorscale='Blues_r',
+            colorscale='Viridis',
             cmin=0,
             color=filtered_df[column_name],
             cmax=filtered_df[column_name].max(),
@@ -346,7 +346,7 @@ def get_extreme_events_on_map(df, column_name="si", scaling_factor: int = 5):
         coloraxis=dict(
             reversescale=True,
             autocolorscale=False,
-            colorscale='Blues_r',
+            colorscale='Viridis',
             cmin=0,
             cmax=df_copy[column_name].max(),
             colorbar_title=f"{column_name}"
