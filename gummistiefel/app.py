@@ -149,7 +149,7 @@ app.layout = html.Div(children=[
         children=[
             html.Div(
                 children=[
-                    html.Div(children="Property", className="menu-title"),
+                    html.Div(children="Property in histogram", className="menu-title"),
                     dcc.Dropdown(
                         id="property_list",
                         options=[
@@ -306,7 +306,7 @@ def update_overview_graphs(bin_size,
         u_property_graph = utils.get_histogram(filtered_ts_df, bin_size=bin_size, column_name=prec_property)
     else:
         u_property_graph = utils.get_histogram(filtered_df, bin_size=bin_size, column_name=prec_property)
-    u_property_graph.update_layout(title=f"Average {prec_property} of {prec_type.lower()} precipitation events")
+    u_property_graph.update_layout(title=f"Property {prec_property} of {prec_type.lower()} precipitation events")
 
     return u_events_graph, u_property_graph
 
