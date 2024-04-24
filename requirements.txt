@@ -5,7 +5,7 @@ dash==1.19.0
 tqdm==4.56.0
 pandas==1.2.1
 aiohttp>=3.7.4
-scipy==1.6.0
+scipy==1.11.1
 dash_html_components==1.1.2
 plotly==4.14.3
 numpy==1.20.0
