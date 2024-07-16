@@ -2,7 +2,7 @@ dash_core_components==1.15.0
 dash_table==4.11.2
 requests==2.25.1
 dash==1.19.0
-tqdm==4.56.0
+tqdm==4.66.3
 pandas==1.2.1
 aiohttp>=3.7.4
 scipy==1.6.0
